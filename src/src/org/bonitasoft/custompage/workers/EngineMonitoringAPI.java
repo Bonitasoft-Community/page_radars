@@ -96,7 +96,12 @@ public class EngineMonitoringAPI {
 
         
         // number of item in the queue
-        String sqlRequest="SELECT count(f.id) FROM FLOWNODE_INSTANCE f WHERE (f.STATE_EXECUTING = TRUE OR f.STABLE = FALSE OR f.TERMINAL = TRUE OR f.STATECATEGORY = 'ABORTING' OR f.STATECATEGORY='CANCELLING')";
+        String sqlRequest="SELECT count(f.id) FROM FLOWNODE_INSTANCE f ";
+        sqlRequest += " WHERE (f.STATE_EXECUTING = ? "; // true
+        sqlRequest += " OR f.STABLE = ? "; // false
+        sqlRequest += " OR f.TERMINAL = ? "; // true
+        sqlRequest += " OR f.STATECATEGORY = 'ABORTING' OR f.STATECATEGORY='CANCELLING')";
+        
         Connection con = null;
         PreparedStatement pstmt=null;
         ResultSet rs = null;
@@ -104,6 +109,9 @@ public class EngineMonitoringAPI {
         {
           con = getConnection();
         pstmt = con.prepareStatement(sqlRequest);
+        pstmt.setBoolean(1,  true);
+        pstmt.setBoolean(2,  false);
+        pstmt.setBoolean(3,  true);
         
         rs = pstmt.executeQuery();
         while (rs.next()) {
