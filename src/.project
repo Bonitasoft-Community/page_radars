@@ -51,5 +51,25 @@
 			<type>1</type>
 			<locationURI>PARENT-5-PROJECT_LOC/bonita/BPM-SP-7.3.3/workspace/tomcat/temp/bonita_portal_22976@Dragon-Pierre-Yves/tenants/1/pages/custompage_workers/index.html</locationURI>
 		</link>
+		<link>
+			<name>custompage/20180925 7.7.2/Actions.groovy</name>
+			<type>1</type>
+			<locationURI>PARENT-5-PROJECT_LOC/bonita/BPM-SP-7.7.2/workspace/tomcat/server/temp/bonita_portal_1792@Dragon-Pierre-Yves/tenants/1/pages/custompage_workers/Actions.groovy</locationURI>
+		</link>
+		<link>
+			<name>custompage/20180925 7.7.2/Index.groovy</name>
+			<type>1</type>
+			<locationURI>PARENT-5-PROJECT_LOC/bonita/BPM-SP-7.7.2/workspace/tomcat/server/temp/bonita_portal_1792@Dragon-Pierre-Yves/tenants/1/pages/custompage_workers/Index.groovy</locationURI>
+		</link>
+		<link>
+			<name>custompage/20180925 7.7.2/ctrlmonitor.js</name>
+			<type>1</type>
+			<locationURI>PARENT-5-PROJECT_LOC/bonita/BPM-SP-7.7.2/workspace/tomcat/server/temp/bonita_portal_1792@Dragon-Pierre-Yves/tenants/1/pages/custompage_workers/resources/ctrlmonitor.js</locationURI>
+		</link>
+		<link>
+			<name>custompage/20180925 7.7.2/index.html</name>
+			<type>1</type>
+			<locationURI>PARENT-5-PROJECT_LOC/bonita/BPM-SP-7.7.2/workspace/tomcat/server/temp/bonita_portal_1792@Dragon-Pierre-Yves/tenants/1/pages/custompage_workers/index.html</locationURI>
+		</link>
 	</linkedResources>
 </projectDescription>
