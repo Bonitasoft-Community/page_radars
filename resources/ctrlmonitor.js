@@ -37,6 +37,8 @@ appCommand.controller('CtrlControler',
 	this.listevents='';
 	this.inprogress=false;
 
+	this.radars=[];
+	
 	this.refresh = function()
 	{
 
@@ -46,7 +48,15 @@ appCommand.controller('CtrlControler',
 		var d = new Date();
 
 		$http.get( '?page=custompage_workers&action=refresh&t='+d.getTime() )
-				.success( function ( jsonResult ) {
+				.success( function ( jsonResult, statusHttp, headers, config ) {
+					
+					// connection is lost ?
+					if (statusHttp==401 || typeof jsonResult === 'string') {
+						console.log("Redirected to the login page !");
+						window.location.reload();
+					}
+			
+					
 						console.log("history",jsonResult);
 						self.radars 		= jsonResult.collect.radars;
 						self.timecollectms	= jsonResult.collect.timecollectms;
@@ -95,7 +105,14 @@ appCommand.controller('CtrlControler',
 		var d = new Date();
 
 		$http.get( '?page=custompage_workers&action=saveprops&paramjson='+json +'&t='+d.getTime())
-				.success( function ( jsonResult ) {
+				.success( function ( jsonResult, statusHttp, headers, config ) {
+					
+					// connection is lost ?
+					if (statusHttp==401 || typeof jsonResult === 'string') {
+						console.log("Redirected to the login page !");
+						window.location.reload();
+					}
+			
 						console.log("history",jsonResult);
 						self.listevents		= jsonResult.listevents;
 						self.inprogress=false;

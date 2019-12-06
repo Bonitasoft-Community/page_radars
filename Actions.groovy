@@ -82,7 +82,7 @@ import org.bonitasoft.log.event.BEvent;
 import org.bonitasoft.log.event.BEvent.Level;
 import org.bonitasoft.log.event.BEventFactory;
 
-import org.bonitasoft.ext.properties.BonitaProperties;
+import org.bonitasoft.properties.BonitaProperties;
 
 import org.bonitasoft.engine.service.TenantServiceAccessor;
 import org.bonitasoft.engine.service.TenantServiceSingleton;
@@ -94,11 +94,11 @@ public class Actions {
 
     private static String pageName="workers";
     private static Logger logger= Logger.getLogger("org.bonitasoft.custompage."+pageName+".groovy");
-     
-    
-        
-    
-      // 2018-03-08T00:19:15.04Z
+
+
+
+
+    // 2018-03-08T00:19:15.04Z
     public final static SimpleDateFormat sdfJson = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
     public final static SimpleDateFormat sdfHuman = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -109,12 +109,12 @@ public class Actions {
     /* -------------------------------------------------------------------- */
 
     public static Index.ActionAnswer doAction(HttpServletRequest request, String paramJsonSt, HttpServletResponse response, PageResourceProvider pageResourceProvider, PageContext pageContext) {
-                
+
         // logger.info("#### PingActions:Actions start");
-        Index.ActionAnswer actionAnswer = new Index.ActionAnswer(); 
+        Index.ActionAnswer actionAnswer = new Index.ActionAnswer();
         List<BEvent> listEvents=new ArrayList<BEvent>();
         Object jsonParam = (paramJsonSt==null ? null : JSONValue.parse(paramJsonSt));
-          
+
         try {
             String action=request.getParameter("action");
             logger.info("#### "+pageName+":Actions action is["+action+"] !");
@@ -125,26 +125,27 @@ public class Actions {
                 return actionAnswer;
             }
             actionAnswer.isManaged=true;
-            
+
             APISession apiSession = pageContext.getApiSession();
-            HttpSession httpSession = request.getSession();            
+            HttpSession httpSession = request.getSession();
             ProcessAPI processAPI = TenantAPIAccessor.getProcessAPI(apiSession);
             IdentityAPI identityAPI = TenantAPIAccessor.getIdentityAPI(apiSession);
-			
-            long tenantId = apiSession.getTenantId();          
-            TenantServiceAccessor tenantServiceAccessor = TenantServiceSingleton.getInstance(tenantId);             
 
-                
-           	
-      			if ("refresh".equals(action))
-      			{
-      			    actionAnswer.responseMap.put("collect", EngineMonitoringAPI.getAllPhoto());	
-      			}
+            long tenantId = apiSession.getTenantId();
+            TenantServiceAccessor tenantServiceAccessor = TenantServiceSingleton.getInstance(tenantId);
+            EngineMonitoringAPI engineMonitoringAPI = new EngineMonitoringAPI();
+            // ok, you do what you want with the initialisation
+            engineMonitoringAPI.initialisation( apiSession );
 
-             
+            if ("refresh".equals(action))
+            {
+                actionAnswer.responseMap.put("collect", engineMonitoringAPI.getAllPhotos());
+            }
+
+
             // actionAnswer.responseMap.put("listevents",BEventFactory.getHtml( listEvents));
-                
-            
+
+
             logger.info("#### "+pageName+":Actions END responseMap ="+actionAnswer.responseMap.size());
             return actionAnswer;
         } catch (Exception e) {
@@ -154,108 +155,107 @@ public class Actions {
             logger.severe("#### "+pageName+":Groovy Exception ["+e.toString()+"] at "+exceptionDetails);
             actionAnswer.isResponseMap=true;
             actionAnswer.responseMap.put("Error", "log:Groovy Exception ["+e.toString()+"] at "+exceptionDetails);
-            
 
-            
+
+
             return actionAnswer;
         }
     }
 
     /**
-		to create a simple chart
-		*/
-		public static class ActivityTimeLine
-		{
-				public String activityName;
-				public Date dateBegin;
-				public Date dateEnd;
-				
-				public static ActivityTimeLine getActivityTimeLine(String activityName, int timeBegin, int timeEnd)
-				{
-					Calendar calBegin = Calendar.getInstance();
-					calBegin.set(Calendar.HOUR_OF_DAY , timeBegin);
-					Calendar calEnd = Calendar.getInstance();
-					calEnd.set(Calendar.HOUR_OF_DAY , timeEnd);
-					
-						ActivityTimeLine oneSample = new ActivityTimeLine();
-						oneSample.activityName = activityName;
-						oneSample.dateBegin		= calBegin.getTime();
-						oneSample.dateEnd 		= calEnd.getTime();
-						
-						return oneSample;
-				}
-				public long getDateLong()
-				{ return dateBegin == null ? 0 : dateBegin.getTime(); }
-		}
-		
-		
-		/** create a simple chart 
-		*/
-		public static String getChartTimeLine(String title, List<ActivityTimeLine> listSamples){
-				Logger logger = Logger.getLogger("org.bonitasoft");
-				
-				/** structure 
-				 * "rows": [
-           {
-        		 c: [
-        		      { "v": "January" },"
-                  { "v": 19,"f": "42 items" },
-                  { "v": 12,"f": "Ony 12 items" },
-                ]
-           },
-           {
-        		 c: [
-        		      { "v": "January" },"
-                  { "v": 19,"f": "42 items" },
-                  { "v": 12,"f": "Ony 12 items" },
-                ]
-           },
+     to create a simple chart
+     */
+    public static class ActivityTimeLine
+    {
+        public String activityName;
+        public Date dateBegin;
+        public Date dateEnd;
 
-				 */
-				String resultValue="";
-				SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy,MM,dd,HH,mm,ss,SSS");
-				
-				for (int i=0;i<listSamples.size();i++)
-				{
-					logger.info("sample [i] : "+listSamples.get( i ).activityName+"] dateBegin["+simpleDateFormat.format( listSamples.get( i ).dateBegin)+"] dateEnd["+simpleDateFormat.format( listSamples.get( i ).dateEnd) +"]");
-						if (listSamples.get( i ).dateBegin!=null &&  listSamples.get( i ).dateEnd != null)
-								resultValue+= "{ \"c\": [ { \"v\": \""+listSamples.get( i ).activityName+"\" }," ;
-								resultValue+= " { \"v\": \""+listSamples.get( i ).activityName +"\" }, " ;
-								resultValue+= " { \"v\": \"Date("+ simpleDateFormat.format( listSamples.get( i ).dateBegin) +")\" }, " ;
-								resultValue+= " { \"v\": \"Date("+ simpleDateFormat.format( listSamples.get( i ).dateEnd) +")\" } " ;
-								resultValue+= "] },";
-				}
-				if (resultValue.length()>0)
-						resultValue = resultValue.substring(0,resultValue.length()-1);
-				
-				String resultLabel = "{ \"type\": \"string\", \"id\": \"Role\" },{ \"type\": \"string\", \"id\": \"Name\"},{ \"type\": \"datetime\", \"id\": \"Start\"},{ \"type\": \"datetime\", \"id\": \"End\"}";
-				
-				String valueChart = "	{"
-					   valueChart += "\"type\": \"Timeline\", ";
-					  valueChart += "\"displayed\": true, ";
-					  valueChart += "\"data\": {";
-					  valueChart +=   "\"cols\": ["+resultLabel+"], ";
-					  valueChart +=   "\"rows\": ["+resultValue+"] ";
-					  /*
-					  +   "\"options\": { "
-					  +         "\"bars\": \"horizontal\","
-					  +         "\"title\": \""+title+"\", \"fill\": 20, \"displayExactValues\": true,"
-					  +         "\"vAxis\": { \"title\": \"ms\", \"gridlines\": { \"count\": 100 } }"
-					  */
-					  valueChart +=  "}";
-					  valueChart +="}";
-// 				+"\"isStacked\": \"true\","
- 	          
-//		    +"\"displayExactValues\": true,"
-//		    
-//		    +"\"hAxis\": { \"title\": \"Date\" }"
-//		    +"},"
-				logger.info("Value1 >"+valueChart+"<");
+        public static ActivityTimeLine getActivityTimeLine(String activityName, int timeBegin, int timeEnd)
+        {
+            Calendar calBegin = Calendar.getInstance();
+            calBegin.set(Calendar.HOUR_OF_DAY , timeBegin);
+            Calendar calEnd = Calendar.getInstance();
+            calEnd.set(Calendar.HOUR_OF_DAY , timeEnd);
 
-				
-				return valueChart;		
-		}
-    
-    
-    
+            ActivityTimeLine oneSample = new ActivityTimeLine();
+            oneSample.activityName = activityName;
+            oneSample.dateBegin		= calBegin.getTime();
+            oneSample.dateEnd 		= calEnd.getTime();
+
+            return oneSample;
+        }
+        public long getDateLong()
+        { return dateBegin == null ? 0 : dateBegin.getTime(); }
+    }
+
+
+    /** create a simple chart 
+     */
+    public static String getChartTimeLine(String title, List<ActivityTimeLine> listSamples){
+        Logger logger = Logger.getLogger("org.bonitasoft");
+
+        /** structure 
+         * "rows": [
+         {
+         c: [
+         { "v": "January" },"
+         { "v": 19,"f": "42 items" },
+         { "v": 12,"f": "Ony 12 items" },
+         ]
+         },
+         {
+         c: [
+         { "v": "January" },"
+         { "v": 19,"f": "42 items" },
+         { "v": 12,"f": "Ony 12 items" },
+         ]
+         },
+         */
+        String resultValue="";
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy,MM,dd,HH,mm,ss,SSS");
+
+        for (int i=0;i<listSamples.size();i++)
+        {
+            logger.info("sample [i] : "+listSamples.get( i ).activityName+"] dateBegin["+simpleDateFormat.format( listSamples.get( i ).dateBegin)+"] dateEnd["+simpleDateFormat.format( listSamples.get( i ).dateEnd) +"]");
+            if (listSamples.get( i ).dateBegin!=null &&  listSamples.get( i ).dateEnd != null)
+                resultValue+= "{ \"c\": [ { \"v\": \""+listSamples.get( i ).activityName+"\" }," ;
+            resultValue+= " { \"v\": \""+listSamples.get( i ).activityName +"\" }, " ;
+            resultValue+= " { \"v\": \"Date("+ simpleDateFormat.format( listSamples.get( i ).dateBegin) +")\" }, " ;
+            resultValue+= " { \"v\": \"Date("+ simpleDateFormat.format( listSamples.get( i ).dateEnd) +")\" } " ;
+            resultValue+= "] },";
+        }
+        if (resultValue.length()>0)
+            resultValue = resultValue.substring(0,resultValue.length()-1);
+
+        String resultLabel = "{ \"type\": \"string\", \"id\": \"Role\" },{ \"type\": \"string\", \"id\": \"Name\"},{ \"type\": \"datetime\", \"id\": \"Start\"},{ \"type\": \"datetime\", \"id\": \"End\"}";
+
+        String valueChart = "	{"
+        valueChart += "\"type\": \"Timeline\", ";
+        valueChart += "\"displayed\": true, ";
+        valueChart += "\"data\": {";
+        valueChart +=   "\"cols\": ["+resultLabel+"], ";
+        valueChart +=   "\"rows\": ["+resultValue+"] ";
+        /*
+         +   "\"options\": { "
+         +         "\"bars\": \"horizontal\","
+         +         "\"title\": \""+title+"\", \"fill\": 20, \"displayExactValues\": true,"
+         +         "\"vAxis\": { \"title\": \"ms\", \"gridlines\": { \"count\": 100 } }"
+         */
+        valueChart +=  "}";
+        valueChart +="}";
+        // 				+"\"isStacked\": \"true\","
+
+        //		    +"\"displayExactValues\": true,"
+        //
+        //		    +"\"hAxis\": { \"title\": \"Date\" }"
+        //		    +"},"
+        logger.info("Value1 >"+valueChart+"<");
+
+
+        return valueChart;
+    }
+
+
+
 }
