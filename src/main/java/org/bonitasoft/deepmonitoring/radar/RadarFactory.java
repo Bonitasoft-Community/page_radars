@@ -1,103 +1,132 @@
 package org.bonitasoft.deepmonitoring.radar;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bonitasoft.deepmonitoring.radar.connector.RadarTimeTrackerConnector;
+import org.bonitasoft.deepmonitoring.radar.process.RadarCase;
+import org.bonitasoft.deepmonitoring.radar.sql.RadarSql;
 import org.bonitasoft.deepmonitoring.radar.workers.RadarWorkers;
-import org.bonitasoft.engine.session.APISession;
+import org.bonitasoft.engine.api.APIAccessor;
 
 public class RadarFactory {
 
-  private static RadarFactory radarFactory = new RadarFactory();
-  public static RadarFactory getinstance()
-  {
-    return radarFactory;
-  }
-  /**
-   * reference all the different existing radar
-   */
-  @SuppressWarnings("rawtypes")
-private Map<String, Class> listClassRadars = new HashMap<String, Class>();
-  /**
-   * a new radar is instantiate. Then keep all the instantiate radar
-   */
-  private List<Radar> listRadars = new ArrayList<Radar>();
+    private static RadarFactory radarFactory = new RadarFactory();
 
-  private RadarFactory() {
-    listClassRadars.put( RadarWorkers.classRadarName, RadarWorkers.class );
-    //listClassRadars.put( RadarSql.classRadarName,  RadarSql.class);
-    //listClassRadars.put( RadarCase.classRadarName, RadarCase.class );
-  }
-  
-  public void initialisation( APISession apiSession)
-  {
-    
-    
-  for (String classRadarName : radarFactory.getListClassRadars()) {
-    Radar radar = radarFactory.newRadar(classRadarName, classRadarName, apiSession);
-    if (radar == null)
-      continue;
-  }
-  }
+    public static RadarFactory getInstance() {
+        return radarFactory;
+    }
 
-  
-  
-  /** a radar is an object to monitor the different part
-   * 
-   */ 
-  public List<String> getListClassRadars()
-  {   
-    List<String> listNames=new ArrayList<String>();
-    for (String classRadarName : listClassRadars.keySet())
-      listNames.add( classRadarName );
-    return listNames;
-  }
-  
-  /** instantiate a new Radar from its name, and instantiate it.
-   * 
-   * @param name
-   * @param apiAccessor
-   * @return
-   */
-  public Radar newRadar(String className, String name, APISession apiSession )
-  {
+    /**
+     * reference all the different existing radar
+     */
     @SuppressWarnings("rawtypes")
-    Class classRadar = listClassRadars.get( className );
-    if (classRadar==null)
-      return null;
-    try
-    {
-      Radar radar= (Radar) classRadar.newInstance();
-      radar.setName( name );
-      radar.initialization(apiSession);
-      listRadars.add( radar );
-      return radar;
+    private Map<String, Class> listClassRadars = new HashMap<>();
+    /**
+     * a new radar is instantiate. Then keep all the instantiate radar
+     */
+    private List<Radar> listRadars = new ArrayList<>();
+
+    /**
+     * Attention, add a new class here means add a getInstance()
+     * Default Constructor.
+     */
+    private RadarFactory() {
+        listClassRadars.put(RadarWorkers.CLASS_RADAR_NAME, RadarWorkers.class);
+        listClassRadars.put(RadarTimeTrackerConnector.CLASS_RADAR_NAME, RadarTimeTrackerConnector.class);
+        listClassRadars.put(RadarSql.CLASS_RADAR_NAME, RadarSql.class);
+        listClassRadars.put(RadarCase.CLASS_RADAR_NAME, RadarCase.class);
     }
-    catch(Exception e)
-    {
-      return null;
+
+    
+   
+
+    /**
+     * a radar is an object to monitor the different part
+     */
+    public List<String> getListClassRadars() {
+        List<String> listNames = new ArrayList<>();
+        for (String classRadarName : listClassRadars.keySet())
+            listNames.add(classRadarName);
+        return listNames;
     }
-  }
-  
-  public List<Radar> getRadars()
-  {
-    return listRadars;
-  }
-  /**
-   * instantiate a new Radar
-   * @param name
-   * @return
-   */
-  public Radar getRadars( String className, String name )
-  {
-    for (Radar radar : listRadars )
-    {
-      if (radar.getName() == name && radar.getClassName().equals( className ))
-        return radar;
+
+    /**
+     * instantiate a new Radar from its name, and instantiate it.
+     * 
+     * @param name
+     * @param apiAccessor
+     * @return
+     */
+    public Radar getInstance( String name, String className, long tenantId, APIAccessor apiAccessor) {
+        Radar radar = getRadars(name, className );
+        if (radar != null)
+            return radar;
+        // create a new one then
+       
+       
+       
+       
+        try {
+            if (RadarWorkers.CLASS_RADAR_NAME.equals(className))
+                radar = new RadarWorkers(name,tenantId, apiAccessor);
+            else if (RadarTimeTrackerConnector.CLASS_RADAR_NAME.equals(className))
+                radar = new RadarTimeTrackerConnector(name,tenantId, apiAccessor);
+            else if (RadarSql.CLASS_RADAR_NAME.equals(className))
+                radar = new RadarSql(name,tenantId, apiAccessor);
+            else if (RadarCase.CLASS_RADAR_NAME.equals(className))
+                radar = new RadarCase(name,tenantId, apiAccessor);
+            if (radar==null)
+                return null;
+            listRadars.add(radar);
+            return radar;
+        } catch (Exception e) {
+            return null;
+        }
     }
-    // we don't have one like this !
-    return null;
-  }
+
+    public List<Radar> getRadars() {
+        return listRadars;
+    }
+
+    /**
+     * get a new radar
+     * 
+     * @param name
+     * @return
+     */
+    public Radar getRadars(String name, String className ) {
+        for (Radar radar : listRadars) {
+            if (radar.getName().equals( name) && radar.getName().equals(className))
+                return radar;
+        }
+        // we don't have one like this !
+        return null;
+    }
+    
+    /**
+     * get a radar, assuming the name is unique
+     * 
+     * @param name
+     * @return
+     */
+    public Radar getRadarsByName(String name) {
+        for (Radar radar : listRadars) {
+            if (radar.getName().equals( name) )
+                return radar;
+        }
+        // we don't have one like this !
+        return null;
+    }
+    public Radar getRadarsByClassName(String className) {
+        for (Radar radar : listRadars) {
+            if (radar.getClassName().equals( className) )
+                return radar;
+        }
+        // we don't have one like this !
+        return null;
+    }
 }

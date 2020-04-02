@@ -103,7 +103,7 @@ public class WorkerRadarPhoto  extends RadarPhoto {
     public int countTimedWaiting=0;
 
     //worker
-    public List< WorkerPhoto> listWorkers = new ArrayList< WorkerPhoto>();
+    public List< WorkerPhoto> listWorkers = new ArrayList< >();
     
     // 
     long workerQueueNumber;
@@ -157,9 +157,9 @@ public class WorkerRadarPhoto  extends RadarPhoto {
         // main indicator : the workerQueueNumber
         if (isWorker)
         {
-          IndicatorPhoto indicatorPhoto = new IndicatorPhoto();
-          indicatorPhoto.label="Work Queue Number";
-          indicatorPhoto.value=workerQueueNumber;
+          IndicatorPhoto indicatorPhoto = new IndicatorPhoto("WorkerQueueNumber");
+          indicatorPhoto.label="Worker Queue Number";
+          indicatorPhoto.setValue( workerQueueNumber );
           indicatorPhoto.isMainIndicator = true;
           int totalNumberThread = countRunnable +countBlocked+ countWaiting+countTimedWaiting;
           if (workerQueueNumber < totalNumberThread)
@@ -168,12 +168,12 @@ public class WorkerRadarPhoto  extends RadarPhoto {
             indicatorPhoto.analysis = "Waiting list : "+( workerQueueNumber - totalNumberThread);
           addIndicator( indicatorPhoto );
           
-          indicatorPhoto = new IndicatorPhoto();
+          indicatorPhoto = new IndicatorPhoto("WorkerPoolLoad");
           indicatorPhoto.label="Worker Pool load";
            indicatorPhoto.isMainIndicator = true;
-           indicatorPhoto.value=totalNumberThread ==0 ? 0 : (countRunnable+countBlocked+countTimedWaiting) / totalNumberThread;
-           indicatorPhoto.percent = totalNumberThread ==0 ? 0 : (100* (countRunnable+countBlocked+countTimedWaiting)) / totalNumberThread;
-           if ( indicatorPhoto.percent > 80)
+           indicatorPhoto.setValue( countRunnable+countBlocked+countTimedWaiting );
+           indicatorPhoto.setPercent( totalNumberThread ==0 ? 0 : (100* (countRunnable+countBlocked+countTimedWaiting)) / totalNumberThread);
+           if ( indicatorPhoto.getValue() > 80)
             indicatorPhoto.analysis = "Works pool used, consider increased the number of Connector worker is CPU and Memory are low";
           else
             indicatorPhoto.analysis = "Working correctly";
@@ -181,13 +181,13 @@ public class WorkerRadarPhoto  extends RadarPhoto {
         }
         else
         {
-          IndicatorPhoto indicatorPhoto = new IndicatorPhoto();
+          IndicatorPhoto indicatorPhoto = new IndicatorPhoto("ConnectorPoolLoad");
           indicatorPhoto.label="Connector Pool load";
            indicatorPhoto.isMainIndicator = true;
            int totalNumberThread = countRunnable +countBlocked+ countWaiting+countTimedWaiting;
-           indicatorPhoto.value=totalNumberThread ==0 ? 0 : (countRunnable+countBlocked) / totalNumberThread;
-           indicatorPhoto.percent=totalNumberThread ==0 ? 0 : (100* (countRunnable+countBlocked)) / totalNumberThread;
-           if ( indicatorPhoto.value > 80)
+           indicatorPhoto.setValue( countRunnable+countBlocked );
+           indicatorPhoto.setPercent( totalNumberThread ==0 ? 0 : (100* (countRunnable+countBlocked)) / totalNumberThread );
+           if ( indicatorPhoto.getValue() > 80)
             indicatorPhoto.analysis = "Connectors used, consider increased the number of Connector worker is CPU and Memory are low";
           else
             indicatorPhoto.analysis = "Working correctly";
@@ -196,23 +196,23 @@ public class WorkerRadarPhoto  extends RadarPhoto {
         }
         
         // synthesis
-        addIndicator( getIndicator( "runnable", countRunnable,listWorkers.size(), 0,80,90 ));
-        addIndicator( getIndicator( "blocked", countBlocked,listWorkers.size(),0,20,30 ));
-        addIndicator( getIndicator( "waiting", countWaiting,listWorkers.size(),0,100,100 ));
-        addIndicator( getIndicator( "timedwaiting", countTimedWaiting,listWorkers.size(),20,80,90 ));
+        addIndicator( getIndicator( "runnable", "runnable", countRunnable,listWorkers.size(), 0,80,90 ));
+        addIndicator( getIndicator( "blocked", "blocked", countBlocked,listWorkers.size(),0,20,30 ));
+        addIndicator( getIndicator( "waiting", "waiting", countWaiting,listWorkers.size(),0,100,100 ));
+        addIndicator( getIndicator( "timedwaiting", "timedwaiting", countTimedWaiting,listWorkers.size(),20,80,90 ));
      }
     
     
     
     
-    private IndicatorPhoto getIndicator( String label, int value, int total, int successLevel, int warningLevel, int dangerLevel)
+    private IndicatorPhoto getIndicator(String name, String label, int value, int total, int successLevel, int warningLevel, int dangerLevel)
     {
-      IndicatorPhoto indicatorPhoto = new IndicatorPhoto();
+      IndicatorPhoto indicatorPhoto = new IndicatorPhoto( name );
       indicatorPhoto.label=  label;
-      indicatorPhoto.value= value;
+      indicatorPhoto.setValue( value);
       indicatorPhoto.isMainIndicator= false;
       int percent=total==0 ? 0 : (100*value)/total ;
-      indicatorPhoto.percent= percent;
+      indicatorPhoto.setPercent( percent );
       if (percent>dangerLevel)
         indicatorPhoto.display= "label label-danger";
       else if (percent>warningLevel)

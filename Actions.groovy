@@ -64,9 +64,7 @@ import org.bonitasoft.engine.bpm.process.ArchivedProcessInstancesSearchDescripto
 import org.bonitasoft.engine.bpm.process.ProcessInstance;
 import org.bonitasoft.engine.bpm.process.ProcessInstanceSearchDescriptor;
 import org.bonitasoft.engine.business.data.BusinessDataRepository
-import org.bonitasoft.engine.session.APISession;
-import org.bonitasoft.engine.api.ProcessAPI;
-import org.bonitasoft.engine.api.IdentityAPI;
+
 import org.bonitasoft.engine.command.CommandDescriptor;
 import org.bonitasoft.engine.command.CommandCriterion;
 import org.bonitasoft.engine.bpm.flownode.ActivityInstance;
@@ -77,6 +75,17 @@ import org.bonitasoft.engine.search.Order;
 import org.bonitasoft.engine.bpm.process.ProcessDeploymentInfo;
 
 
+import org.bonitasoft.engine.session.APISession;
+
+import org.bonitasoft.engine.api.BusinessDataAPI;
+import org.bonitasoft.engine.api.CommandAPI;
+import org.bonitasoft.engine.api.PageAPI;
+import org.bonitasoft.engine.api.IdentityAPI;
+import org.bonitasoft.engine.api.ApplicationAPI;
+import org.bonitasoft.engine.api.PermissionAPI;
+import org.bonitasoft.engine.api.ProcessAPI;
+import org.bonitasoft.engine.api.ProfileAPI;
+import org.bonitasoft.engine.api.ThemeAPI;
 
 import org.bonitasoft.log.event.BEvent;
 import org.bonitasoft.log.event.BEvent.Level;
@@ -86,6 +95,8 @@ import org.bonitasoft.properties.BonitaProperties;
 
 import org.bonitasoft.engine.service.TenantServiceAccessor;
 import org.bonitasoft.engine.service.TenantServiceSingleton;
+import org.bonitasoft.engine.api.APIAccessor;
+
 
 import org.bonitasoft.custompage.workers.EngineMonitoringAPI;
 
@@ -134,8 +145,10 @@ public class Actions {
             long tenantId = apiSession.getTenantId();
             TenantServiceAccessor tenantServiceAccessor = TenantServiceSingleton.getInstance(tenantId);
             EngineMonitoringAPI engineMonitoringAPI = new EngineMonitoringAPI();
+
+            APIAccessor myApiAccessor = new myApiAccessor( apiSession );
             // ok, you do what you want with the initialisation
-            engineMonitoringAPI.initialisation( apiSession );
+            engineMonitoringAPI.initialisation( tenantId, myApiAccessor );
 
             if ("refresh".equals(action))
             {
@@ -255,7 +268,55 @@ public class Actions {
 
         return valueChart;
     }
-
+    /**
+     * TenantAPIAccessor is not an abject, so mwe must define our own apiAccessor to give it to the librairy
+     * @author Firstname Lastname
+     *
+     */
+    public static class myApiAccessor implements APIAccessor {
+        APISession apiSession;
+        
+        public myApiAccessor( APISession apiSession ) {
+            this.apiSession = apiSession;
+        }
+        
+        public BusinessDataAPI getBusinessDataAPI() {
+            return null;            
+        }
+        
+        public CommandAPI  getCommandAPI() {
+            return TenantAPIAccessor.getCommandAPI( apiSession );
+        }
+        
+        public PageAPI getCustomPageAPI() {
+            return TenantAPIAccessor.getCustomPageAPI( apiSession );            
+        }
+        
+        public IdentityAPI getIdentityAPI() {
+            return TenantAPIAccessor.getIdentityAPI( apiSession );            
+        }
+        
+        public  ApplicationAPI  getLivingApplicationAPI() {
+            return TenantAPIAccessor.getLivingApplicationAPI( apiSession );
+        }
+        
+        public PermissionAPI getPermissionAPI() {
+            return TenantAPIAccessor.getPermissionAPI( apiSession );            
+        }
+        
+        public ProcessAPI  getProcessAPI() {
+            return TenantAPIAccessor.getProcessAPI( apiSession );            
+        }
+        
+        public ProfileAPI  getProfileAPI() {
+            return TenantAPIAccessor.getProfileAPI( apiSession );            
+        }
+        
+        public ThemeAPI getThemeAPI() {
+            return TenantAPIAccessor.getThemeAPI( apiSession );
+            
+        }
+    }
 
 
 }

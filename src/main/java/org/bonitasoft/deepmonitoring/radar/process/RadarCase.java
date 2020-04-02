@@ -13,6 +13,9 @@ import java.util.logging.Logger;
 import org.bonitasoft.custompage.workers.EngineMonitoringAPI;
 import org.bonitasoft.deepmonitoring.radar.Radar;
 import org.bonitasoft.deepmonitoring.radar.RadarPhoto;
+import org.bonitasoft.deepmonitoring.radar.Radar.RadarPhotoParameter;
+import org.bonitasoft.deepmonitoring.radar.Radar.RadarPhotoResult;
+import org.bonitasoft.deepmonitoring.radar.Radar.RadarResult;
 import org.bonitasoft.deepmonitoring.radar.Radar.TypeRadar;
 import org.bonitasoft.deepmonitoring.radar.RadarPhoto.IndicatorPhoto;
 import org.bonitasoft.deepmonitoring.tool.BonitaEngineConnection;
@@ -21,59 +24,83 @@ import org.bonitasoft.engine.api.ProcessAPI;
 import org.bonitasoft.engine.api.TenantAPIAccessor;
 import org.bonitasoft.engine.session.APISession;
 
+public class RadarCase extends Radar {
 
+    final static Logger logger = Logger.getLogger(RadarCase.class.getName());
+    private final static String LOGGER_LABEL = "DeepMonitoring ##";
 
-public class RadarCase  extends Radar {
-final static Logger logger = Logger.getLogger(EngineMonitoringAPI.class.getName());
-public static String loggerLabel = "DeepMonitoring ##";
+    public static String CLASS_RADAR_NAME = "RadarCases";
 
-public static String classRadarName = "RadarCases";
+    // please use the RadarFactory method    
+    public RadarCase(String name, long tenantId, APIAccessor apiAccessor) {
+        super(name, CLASS_RADAR_NAME, tenantId, apiAccessor);
+    }
 
-@Override
-public String getClassName() {
-  return classRadarName;
+    @Override
+    public String getLabel() {
+        return "Number of active case";
+    }
+
+    @Override
+    public TypeRadar getType() {
+        return TypeRadar.LIGHT;
+    }
+
+    /* -------------------------------------------------------------------- */
+    /*                                                                      */
+    /* Radar may want to register / start internal mechanism on start / stop */
+    /*                                                                      */
+    /* -------------------------------------------------------------------- */
+
+    @Override
+    public RadarResult activate() {
+        // nothing to do to actived
+        return RadarResult.getInstance( true, true);
+    }
+
+    @Override
+    public RadarResult deactivate() {
+        // nothing to do to deactived
+        return RadarResult.getInstance( true, false);
+    }
+    public RadarResult isActivated() {
+        return RadarResult.getInstance( true, true);
+    }
+
+    /* -------------------------------------------------------------------- */
+    /*                                                                      */
+    /* Additionnal configuration */
+    /*                                                                      */
+    /* -------------------------------------------------------------------- */
+
+    /* -------------------------------------------------------------------- */
+    /*                                                                      */
+    /* Operation */
+    /*                                                                      */
+    /* -------------------------------------------------------------------- */
+
+    @Override
+    public RadarPhotoResult takePhoto(RadarPhotoParameter radarPhotoParameter) {
+
+        RadarPhotoResult radarPhotoResult = new RadarPhotoResult();
+        RadarPhoto photoWorkers = new RadarPhoto(this, "Workers Thread", "Workers thread");
+        radarPhotoResult.listPhotos.add(photoWorkers);
+
+        try {
+            ProcessAPI processAPI = apiAccessor.getProcessAPI();
+
+            long processInstance = processAPI.getNumberOfProcessInstances();
+
+            IndicatorPhoto indicatorCases = new IndicatorPhoto( "NbCases");
+            indicatorCases.label = "Nb cases";
+            indicatorCases.setValue( processInstance );
+            photoWorkers.addIndicator(indicatorCases);
+        } catch (Exception e) {
+            final StringWriter sw = new StringWriter();
+            e.printStackTrace(new PrintWriter(sw));
+            logger.severe("During getAllProcessInstance : " + e.toString() + " at " + sw.toString() + " tenantId[" + tenantId + "]");
+        }
+        return radarPhotoResult;
+    }
+
 }
-@Override
-public String getLabel() {
- return "Number of active case";
-}
-
-@Override
-public TypeRadar getType() {
- return TypeRadar.LIGHT;
-}
-
-APISession apiSession;
-
-@Override
-public void initialization(APISession apiSession) {
-   this.apiSession = apiSession;
-}
-@Override
-public List<RadarPhoto> takePhoto() {
-  List<RadarPhoto> listPhotos = new ArrayList<RadarPhoto>();
-  RadarPhoto photoWorkers = new RadarPhoto(this, "Workers Thread","Workers thread" );
-  listPhotos.add(photoWorkers);
-
-  try
-  {
-      ProcessAPI processAPI = TenantAPIAccessor.getProcessAPI( apiSession );
-  
-  long processInstance = processAPI.getNumberOfProcessInstances();
-  
-  
-    IndicatorPhoto indicatorCases = new IndicatorPhoto();
-    indicatorCases.label="Nb cases";
-    indicatorCases.value=processInstance;
-    photoWorkers.addIndicator( indicatorCases );
-  } catch (Exception e) {
-    final StringWriter sw = new StringWriter();
-    e.printStackTrace(new PrintWriter(sw));
-    logger.severe("During getAllProcessInstance : " + e.toString() + " at " + sw.toString());
-  } finally {
-    
-  }
-  return listPhotos;
-}
-}
-
