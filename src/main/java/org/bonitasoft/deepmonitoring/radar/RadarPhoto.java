@@ -45,11 +45,14 @@ public class RadarPhoto {
         public boolean isMainIndicator = false;
         public String analysis;
         public String details;
+        public List<String> detailsList = new ArrayList<>();
 
         /**
-         * private to avoid error
+         * private to avoid error.
+         * A indicator can contains value AND percent (optional). If containsPercent is true, then it's contains a percent 
          */
         private double value;
+        private boolean containsValue = false;
         private double valuePercent;
         private boolean containsPercent = false;
         
@@ -62,6 +65,7 @@ public class RadarPhoto {
             return name;
         }
         public void setValue( double value ) {
+            this.containsValue = true;
             this.value = value;
         }
         public void setPercent( double value ) {
@@ -69,11 +73,17 @@ public class RadarPhoto {
             this.valuePercent = value;
         }
         /**
-         * return the value. Maybe a percent or a absolute value
+         * return the value. 
          * @return
          */
         public double getValue() {
             return value;
+        }
+        public double getValuePercent() {
+            return valuePercent;
+        }
+        public boolean isValue() {
+            return containsValue;
         }
         public boolean isPercent() {
             return containsPercent;

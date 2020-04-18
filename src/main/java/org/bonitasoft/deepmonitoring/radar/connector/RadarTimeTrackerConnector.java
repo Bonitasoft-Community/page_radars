@@ -46,6 +46,11 @@ public class RadarTimeTrackerConnector extends Radar {
             "The tracking is not activated, no photo can be delivered",
             "No collect can be done", "Activate the tracking");
     
+    private static BEvent eventCollectConnectorInformation = new BEvent(RadarTimeTrackerConnector.class.getName(), 3, Level.ERROR,
+            "Collect connector information",
+            "A request failed, the information to collect connector failed",
+            "No information on connect", "Check Error");
+    
     
     public RadarTimeTrackerConnector(String name, long tenantId, APIAccessor apiAccessor) {
         super(name, CLASS_RADAR_NAME, tenantId, apiAccessor);
@@ -185,8 +190,17 @@ public class RadarTimeTrackerConnector extends Radar {
     /* -------------------------------------------------------------------- */
     public static final String CSTPHOTO_CONNECTORSOVERLOADED = "NumberOfConnectorsOverloaded";
     public static final String CSTPHOTO_CONNECTORSCALL = "NumberOfConnectorsCall";
+    
+    public static class TimeTrackerParameter implements RadarPhotoParameter {
+        public long maxConnectorsInDetail=20;
+    }
+    
+    
     @Override
     public RadarPhotoResult takePhoto(RadarPhotoParameter radarPhotoParameter) {
+        TimeTrackerParameter timeTrackerParameter = (TimeTrackerParameter) radarPhotoParameter;
+        if (timeTrackerParameter == null)
+            timeTrackerParameter = new TimeTrackerParameter();
         RadarPhotoResult radarPhotoResult =new RadarPhotoResult();
 
         // 
@@ -204,12 +218,30 @@ public class RadarTimeTrackerConnector extends Radar {
 
             IndicatorPhoto indicatorConnector = new IndicatorPhoto(CSTPHOTO_CONNECTORSOVERLOADED);
             indicatorConnector.label = "Number of connector execution using more time than the threshold in the period";
-            indicatorConnector.setValue( listRecords.size() );
-            StringBuilder details = new StringBuilder();
+            
+            // prepare the data
+            List<ConnectorDecorator> listConnectorDecorator = new ArrayList<>();
             for (Record record : listRecords) {
-                details.append(record.getDescription() + " in " + record.getDuration() + ";");
+                ConnectorDecorator connectorDecorator = new ConnectorDecorator( record );
+                if (connectorDecorator.getConnectorInstanceId() !=null)
+                    listConnectorDecorator.add(connectorDecorator);
             }
-            indicatorConnector.details = details.toString();
+            indicatorConnector.setValue( listConnectorDecorator.size() );
+            // detail : manage per page of 100 to build the request
+            try
+            {
+                ConnectorDecorator.completeConnectorInformation( listConnectorDecorator);
+                ConnectorDecorator.sortByDuration( listConnectorDecorator, false);
+            }
+            catch(Exception e) {
+                radarPhotoResult.listEvents.add( new BEvent(eventCollectConnectorInformation, e, "" ));
+            }
+            for (int i=0; i< Math.min(timeTrackerParameter.maxConnectorsInDetail, listConnectorDecorator.size()); i++) {
+                ConnectorDecorator connectorDecorator = listConnectorDecorator.get( i );
+                indicatorConnector.detailsList.add( connectorDecorator.getInformation() );
+                
+            }
+         
             photoConnector.addIndicator(indicatorConnector);
             
             IndicatorPhoto indicatorNbConnectors = new IndicatorPhoto(CSTPHOTO_CONNECTORSCALL);

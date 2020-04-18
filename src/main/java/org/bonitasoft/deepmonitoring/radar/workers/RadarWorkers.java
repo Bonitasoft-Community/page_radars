@@ -155,7 +155,7 @@ public class RadarWorkers extends Radar {
      * @return
      */
     public int getNumberOfFlowNodesWaitingForExecution(long tenantId) {
-        List<Map<String, Object>> listResult = getListFlowNodesWaitingForExecution("count( f.id )", tenantId, 1, null);
+        List<Map<String, Object>> listResult = getListFlowNodesWaitingForExecution("count( fln.id )", tenantId, 1, null);
         if (!listResult.isEmpty() && (!listResult.get(0).isEmpty())) {
             String keyId = listResult.get(0).keySet().iterator().next();
             return Integer.parseInt( listResult.get(0).get(keyId).toString());
@@ -171,7 +171,7 @@ public class RadarWorkers extends Radar {
      * @return
      */
     public List<Map<String, Object>> getOldestFlowNodesWaitingForExecution(long tenantId, long count) {
-        return getListFlowNodesWaitingForExecution("f.ID, f.STATEID, f.STATENAME, f.LASTUPDATEDATE, f.ROOTCONTAINERID", tenantId, count, "f.lastupdatedate asc");        
+        return getListFlowNodesWaitingForExecution("fln.ID, fln.STATEID, fln.STATENAME, fln.LASTUPDATEDATE, fln.ROOTCONTAINERID", tenantId, count, "lastupdatedate asc");        
     }
 
     
@@ -191,15 +191,15 @@ public class RadarWorkers extends Radar {
      * @return
      */
     private List<Map<String, Object>> getListFlowNodesWaitingForExecution(String selectResult, long tenantId, long count, String orderBy) {
-        String sqlRequest = "SELECT " + selectResult + " FROM FLOWNODE_INSTANCE f "
-                + " WHERE (f.STATE_EXECUTING = ? " // true
-                + " OR f.STABLE = ? " // false
-                + " OR f.TERMINAL = ? " // true
-                + " OR f.STATECATEGORY = 'ABORTING' OR f.STATECATEGORY='CANCELLING') " // only waiting state
-                + " and f.TENANTID = ? " // filter by the tenantId
-                + " and f.LASTUPDATEDATE < ? ";
+        String sqlRequest = "SELECT " + selectResult + " FROM FLOWNODE_INSTANCE fln "
+                + " WHERE (fln.STATE_EXECUTING = ? " // true
+                + " OR fln.STABLE = ? " // false
+                + " OR fln.TERMINAL = ? " // true
+                + " OR fln.STATECATEGORY = 'ABORTING' OR fln.STATECATEGORY='CANCELLING') " // only waiting state
+                + " and fln.TENANTID = ? " // filter by the tenantId
+                + " and fln.LASTUPDATEDATE < ? ";
         if (orderBy != null)
-            sqlRequest += "ORDER BY f." + orderBy;
+            sqlRequest += "ORDER BY fln." + orderBy;
         List<Map<String, Object>> listResult = new ArrayList<>();
         
         PreparedStatement pstmt = null;
@@ -228,7 +228,7 @@ public class RadarWorkers extends Radar {
         } catch (Exception e) {
             final StringWriter sw = new StringWriter();
             e.printStackTrace(new PrintWriter(sw));
-            lOGGER.severe(LOGGER_LABEL + "During getCountOfFlowNode : " + e.toString() + " at " + sw.toString());
+            lOGGER.severe(LOGGER_LABEL + "During getCountOfFlowNode : " + e.toString() + " SqlRequest["+sqlRequest+"] at " + sw.toString());
             return listResult;
         } finally {
             if (rs != null) {

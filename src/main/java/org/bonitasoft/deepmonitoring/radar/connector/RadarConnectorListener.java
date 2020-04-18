@@ -82,7 +82,7 @@ public class RadarConnectorListener implements FlushEventListener {
         // final long flushTime = flushEvent.getFlushTime();
         
         for (Record record : flushEvent.getRecords()) {
-            logger.info("RadarConnectionListener : Name="+record.getName()+" Already? "+keepAllRecords.contains(record)+" "+record.getDescription());
+            logger.fine("RadarConnectionListener : Name="+record.getName()+" Already? "+keepAllRecords.contains(record)+" "+record.getDescription());
             if (! record.getName().equals(TimeTrackerRecords.EXECUTE_CONNECTOR_WORK) )
                 continue;
             
