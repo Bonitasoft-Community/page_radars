@@ -128,11 +128,11 @@ public class Actions {
 
         try {
             String action=request.getParameter("action");
-            logger.info("#### "+pageName+":Actions action is["+action+"] !");
+            logger.fine("#### "+pageName+":Actions action is["+action+"] !");
             if (action==null || action.length()==0 )
             {
                 actionAnswer.isManaged=false;
-                logger.info("#### "+pageName+":Actions END No Actions");
+                logger.fine("#### "+pageName+":Actions END No Actions");
                 return actionAnswer;
             }
             actionAnswer.isManaged=true;
@@ -159,7 +159,7 @@ public class Actions {
             // actionAnswer.responseMap.put("listevents",BEventFactory.getHtml( listEvents));
 
 
-            logger.info("#### "+pageName+":Actions END responseMap ="+actionAnswer.responseMap.size());
+            logger.fine("#### "+pageName+":Actions END responseMap ="+actionAnswer.responseMap.size());
             return actionAnswer;
         } catch (Exception e) {
             StringWriter sw = new StringWriter();
@@ -230,7 +230,7 @@ public class Actions {
 
         for (int i=0;i<listSamples.size();i++)
         {
-            logger.info("sample [i] : "+listSamples.get( i ).activityName+"] dateBegin["+simpleDateFormat.format( listSamples.get( i ).dateBegin)+"] dateEnd["+simpleDateFormat.format( listSamples.get( i ).dateEnd) +"]");
+            logger.fine("sample [i] : "+listSamples.get( i ).activityName+"] dateBegin["+simpleDateFormat.format( listSamples.get( i ).dateBegin)+"] dateEnd["+simpleDateFormat.format( listSamples.get( i ).dateEnd) +"]");
             if (listSamples.get( i ).dateBegin!=null &&  listSamples.get( i ).dateEnd != null)
                 resultValue+= "{ \"c\": [ { \"v\": \""+listSamples.get( i ).activityName+"\" }," ;
             resultValue+= " { \"v\": \""+listSamples.get( i ).activityName +"\" }, " ;
@@ -263,7 +263,7 @@ public class Actions {
         //
         //		    +"\"hAxis\": { \"title\": \"Date\" }"
         //		    +"},"
-        logger.info("Value1 >"+valueChart+"<");
+        logger.fine("Value1 >"+valueChart+"<");
 
 
         return valueChart;
