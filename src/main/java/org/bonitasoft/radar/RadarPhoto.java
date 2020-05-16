@@ -1,4 +1,4 @@
-package org.bonitasoft.deepmonitoring.radar;
+package org.bonitasoft.radar;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -30,6 +30,7 @@ public class RadarPhoto {
     private String label;
     private Date datePhoto;
 
+    
     private List<BEvent> listEvents = new ArrayList<>();
     private Radar radar;
     private List<IndicatorPhoto> listIndicators = new ArrayList<>();
@@ -42,7 +43,7 @@ public class RadarPhoto {
         private String name;
         public String label;
         public String display;
-        public boolean isMainIndicator = false;
+        public boolean isMainIndicator = true;
         public String analysis;
         public String details;
         public List<String> detailsList = new ArrayList<>();
@@ -140,6 +141,9 @@ public class RadarPhoto {
         this.label = label;
 
         this.radar = radar;
+        // default value
+        this.startShooting();
+
 
     }
 
@@ -147,6 +151,24 @@ public class RadarPhoto {
         return radar;
     }
 
+    /* -------------------------------------------------------------------- */
+    /*                                                                      */
+    /* Shooting information*/
+    /*                                                                      */
+    /* -------------------------------------------------------------------- */
+    private long startShootingTime;
+    private long stopShootingTime;
+    private Long explicitStopShooting=null;
+    public void startShooting() {
+        this.startShootingTime = System.currentTimeMillis();
+        this.stopShootingTime =this.startShootingTime; 
+    }
+    public void stopShooting() {
+        this.explicitStopShooting = System.currentTimeMillis();
+    }
+    public long getTimeExecution() {
+        return (explicitStopShooting==null ? this.stopShootingTime : explicitStopShooting.longValue()) - this.startShootingTime;
+    }
     /* -------------------------------------------------------------------- */
     /*                                                                      */
     /* Register data */
@@ -159,6 +181,8 @@ public class RadarPhoto {
      */
     public void addIndicator(IndicatorPhoto indicator) {
         listIndicators.add(indicator);
+        // default value
+        this.stopShooting();
     }
 
     public List<IndicatorPhoto> getListIndicators() {
@@ -170,6 +194,8 @@ public class RadarPhoto {
      * @param dataHeader
      */
     public void addDataHeader(DataHeaderPhoto dataHeader) {
+        // default value
+        this.stopShooting();
         listHeader.add(dataHeader);
     }
 
@@ -183,13 +209,14 @@ public class RadarPhoto {
     public Map<String, Object> getMap() {
         Map<String, Object> map = new HashMap<>();
         map.put("datephotoms", datePhoto.getTime());
-
+        map.put("timeexecutionms", getTimeExecution());
+        
         // a radar photo provide : main information
         map.put("label", label);
         map.put("name", name);
         map.put("listevents", BEventFactory.getHtml(listEvents));
 
-        Map<String, Object> photo = new HashMap<String, Object>();
+        Map<String, Object> photo = new HashMap<>();
         map.put("photo", photo);
 
         //---------------- list of indicators

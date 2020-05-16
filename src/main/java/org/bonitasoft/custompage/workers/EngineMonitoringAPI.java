@@ -14,11 +14,11 @@ import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
 
-import org.bonitasoft.deepmonitoring.radar.Radar;
-import org.bonitasoft.deepmonitoring.radar.Radar.RadarPhotoResult;
-import org.bonitasoft.deepmonitoring.radar.RadarFactory;
-import org.bonitasoft.deepmonitoring.radar.RadarPhoto;
 import org.bonitasoft.engine.api.APIAccessor;
+import org.bonitasoft.radar.Radar;
+import org.bonitasoft.radar.RadarFactory;
+import org.bonitasoft.radar.RadarPhoto;
+import org.bonitasoft.radar.Radar.RadarPhotoResult;
 
 /* -------------------------------------------------------------------- */
 /*                                                                      */
@@ -29,7 +29,7 @@ import org.bonitasoft.engine.api.APIAccessor;
 public class EngineMonitoringAPI {
 
   private final static Logger logger = Logger.getLogger(EngineMonitoringAPI.class.getName());
-  private final static String LOGGER_LABEL = "LongBoard ##";
+  private final static String LOGGER_LABEL = "EngineMonitoring ##";
 
   public static Map<String, Object> getListNameRadars() {
     Map<String, Object> map = new HashMap<>();
@@ -38,6 +38,8 @@ public class EngineMonitoringAPI {
     return map;
   }
 
+  long tenantId;
+  APIAccessor apiAccessor;
   /**
    * Initialisation :
    * At this moment, we create one instance of radar per class
@@ -45,8 +47,8 @@ public class EngineMonitoringAPI {
    */
   public void initialisation(long tenantId, APIAccessor apiAccessor )
   {
-    // Ok, let's prepare all initialisation
-    RadarFactory radarFactory = RadarFactory.getInstance();
+      this.tenantId = tenantId;
+      this.apiAccessor = apiAccessor;
   }
   /**
    * get a static photo on all the radar
@@ -54,13 +56,25 @@ public class EngineMonitoringAPI {
    * 
    * @return
    */
-  public static Map<String, Object> getAllPhotos() {
+  public Map<String, Object> getAllPhotos() {
     Map<String, Object> map = new HashMap<>();
     long timeBegin = System.currentTimeMillis();
 
     List<Map<String, Object>> listRadarsPhoto = new ArrayList<>();
     RadarFactory radarFactory = RadarFactory.getInstance();
+    
+    // Creates one radar for each class
+    for (String classNameRadar : radarFactory.getListClassRadars() ) {
+        Radar radar = radarFactory.getRadarByClassName(classNameRadar);
+        if (radar==null)
+            radarFactory.getInstance(classNameRadar,classNameRadar,tenantId, apiAccessor);
+    }
+    
+    
+    
     for (Radar radar : radarFactory.getRadars()) {
+      if (! radar.hasHtmlDasboard())
+          continue;
       
         RadarPhotoResult radarPhotoResult = radar.takePhoto( null );
 

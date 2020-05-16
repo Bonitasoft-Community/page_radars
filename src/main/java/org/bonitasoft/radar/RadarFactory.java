@@ -1,4 +1,4 @@
-package org.bonitasoft.deepmonitoring.radar;
+package org.bonitasoft.radar;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
@@ -6,11 +6,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bonitasoft.deepmonitoring.radar.connector.RadarTimeTrackerConnector;
-import org.bonitasoft.deepmonitoring.radar.process.RadarCase;
-import org.bonitasoft.deepmonitoring.radar.sql.RadarSql;
-import org.bonitasoft.deepmonitoring.radar.workers.RadarWorkers;
 import org.bonitasoft.engine.api.APIAccessor;
+import org.bonitasoft.radar.connector.RadarTimeTrackerConnector;
+import org.bonitasoft.radar.process.RadarCase;
+import org.bonitasoft.radar.sql.RadarSql;
+import org.bonitasoft.radar.workers.RadarWorkers;
 
 public class RadarFactory {
 
@@ -121,7 +121,7 @@ public class RadarFactory {
         // we don't have one like this !
         return null;
     }
-    public Radar getRadarsByClassName(String className) {
+    public Radar getRadarByClassName(String className) {
         for (Radar radar : listRadars) {
             if (radar.getClassName().equals( className) )
                 return radar;

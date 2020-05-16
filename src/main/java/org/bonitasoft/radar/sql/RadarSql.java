@@ -1,4 +1,4 @@
-package org.bonitasoft.deepmonitoring.radar.sql;
+package org.bonitasoft.radar.sql;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -10,13 +10,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-import org.bonitasoft.deepmonitoring.radar.Radar;
-import org.bonitasoft.deepmonitoring.radar.RadarPhoto;
-import org.bonitasoft.deepmonitoring.radar.Radar.RadarPhotoParameter;
-import org.bonitasoft.deepmonitoring.radar.Radar.RadarPhotoResult;
-import org.bonitasoft.deepmonitoring.radar.Radar.RadarResult;
-import org.bonitasoft.deepmonitoring.radar.RadarPhoto.IndicatorPhoto;
-import org.bonitasoft.deepmonitoring.tool.BonitaEngineConnection;
+import org.bonitasoft.properties.BonitaEngineConnection;
+import org.bonitasoft.radar.Radar;
+import org.bonitasoft.radar.RadarPhoto;
+import org.bonitasoft.radar.Radar.RadarPhotoParameter;
+import org.bonitasoft.radar.Radar.RadarPhotoResult;
+import org.bonitasoft.radar.Radar.RadarResult;
+import org.bonitasoft.radar.RadarPhoto.IndicatorPhoto;
 import org.bonitasoft.engine.api.APIAccessor;
 
 public class RadarSql extends Radar {
@@ -81,7 +81,7 @@ public class RadarSql extends Radar {
         radarPhotoResult.listPhotos.add(photoWorkers);
 
         // number of item in the queue
-        String sqlRequest = "SELECT count(a.id) FROM PROCESS_DEFINITION a ";
+        String sqlRequest = "SELECT count(a.id) FROM PROCESS_DEFINITION a where TENANTID=?";
         Connection con = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -90,6 +90,7 @@ public class RadarSql extends Radar {
         try {
             con = BonitaEngineConnection.getConnection();
             pstmt = con.prepareStatement(sqlRequest);
+            pstmt.setObject(1, tenantId);
             long beginTime = System.currentTimeMillis();
             rs = pstmt.executeQuery();
             while (rs.next()) {
@@ -137,5 +138,8 @@ public class RadarSql extends Radar {
         }
         return radarPhotoResult;
     }
-
+    @Override
+    public boolean hasHtmlDasboard() {
+        return false;
+    }
 }

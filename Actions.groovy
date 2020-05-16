@@ -152,7 +152,7 @@ public class Actions {
 
             if ("refresh".equals(action))
             {
-                actionAnswer.responseMap.put("collect", engineMonitoringAPI.getAllPhotos());
+                actionAnswer.responseMap.put("collect", engineMonitoringAPI.getAllPhotos( ));
             }
 
 

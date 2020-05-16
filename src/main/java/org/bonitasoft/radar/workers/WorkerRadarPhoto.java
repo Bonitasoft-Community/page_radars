@@ -1,4 +1,4 @@
-package org.bonitasoft.deepmonitoring.radar.workers;
+package org.bonitasoft.radar.workers;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -8,8 +8,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bonitasoft.deepmonitoring.radar.Radar;
-import org.bonitasoft.deepmonitoring.radar.RadarPhoto;
+import org.bonitasoft.radar.Radar;
+import org.bonitasoft.radar.RadarPhoto;
 
 public class WorkerRadarPhoto  extends RadarPhoto {
   

@@ -1,13 +1,13 @@
-package org.bonitasoft.deepmonitoring.radar;
+package org.bonitasoft.radar;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bonitasoft.deepmonitoring.radar.RadarPhoto.IndicatorPhoto;
 import org.bonitasoft.engine.api.APIAccessor;
 import org.bonitasoft.log.event.BEvent;
+import org.bonitasoft.radar.RadarPhoto.IndicatorPhoto;
 
 /* -------------------------------------------------------------------- */
 /*                                                                      */
@@ -65,6 +65,12 @@ public abstract class Radar {
         return className;
     }
 
+    
+    /**
+     * page controler display only radar with an HTML dashboard
+     * @return
+     */
+    public abstract boolean hasHtmlDasboard();
     public abstract String getLabel();
 
     /**

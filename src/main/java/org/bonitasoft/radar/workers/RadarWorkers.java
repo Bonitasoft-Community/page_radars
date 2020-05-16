@@ -1,4 +1,4 @@
-package org.bonitasoft.deepmonitoring.radar.workers;
+package org.bonitasoft.radar.workers;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -14,13 +14,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
-import org.bonitasoft.deepmonitoring.radar.Radar;
-import org.bonitasoft.deepmonitoring.radar.RadarPhoto;
-import org.bonitasoft.deepmonitoring.radar.Radar.RadarPhotoParameter;
-import org.bonitasoft.deepmonitoring.radar.Radar.RadarPhotoResult;
-import org.bonitasoft.deepmonitoring.radar.Radar.RadarResult;
-import org.bonitasoft.deepmonitoring.tool.BonitaEngineConnection;
 import org.bonitasoft.engine.api.APIAccessor;
+import org.bonitasoft.log.event.BEvent;
+import org.bonitasoft.log.event.BEvent.Level;
+import org.bonitasoft.properties.BonitaEngineConnection;
+import org.bonitasoft.radar.Radar;
+
 
 /* -------------------------------------------------------------------- */
 /*                                                                      */
@@ -35,11 +34,15 @@ public class RadarWorkers extends Radar {
 
     public final static String CLASS_RADAR_NAME = "Workers";
 
+    private final static BEvent eventErrorExecutionQuery = new BEvent(RadarWorkers.class.getName(), 1,
+            Level.ERROR,
+            "Error during the SqlQuery", "The SQL Query to detect a stuck flow node failed", "No stick flow nodes can be detected",
+            "Check exception");
 
+    
     private final static String LOGGER_LABEL = "DeepMonitoring ##";
     private final static Logger lOGGER = Logger.getLogger(RadarWorkers.class.getName());
 
-    private long tenantId;
  
 
     
@@ -129,12 +132,19 @@ public class RadarWorkers extends Radar {
             }
         }
 
-        // now synthesis
-
-        photoWorkers.workerQueueNumber = getNumberOfFlowNodesWaitingForExecution(tenantId);
+        // now synthesis database
+        int delayInMs=1000*60*5; // 5 mn
+        photoWorkers.workerQueueNumber = getNumberOfFlowNodesWaitingForExecution(tenantId,delayInMs);
         if (photoWorkers.workerQueueNumber == -1)
             photoWorkers.workerQueueNumber = 0;
 
+        // In this node
+        // JMX 
+        // bonitaBpmengineWorkPending.tenant.1
+        // bonitaBpmengineWorkRunning.tenant.1
+        // bonitaBpmengineConnectorPending.tenant.1
+        // bonitaBpmengineConnectorRunning.tenant.1
+        
         // compute the main indicator
         photoWorkers.compute(true);
         photoConnector.compute(false);
@@ -142,7 +152,10 @@ public class RadarWorkers extends Radar {
         return radarPhotoResult;
     }
 
-    
+    @Override
+    public boolean hasHtmlDasboard() {
+        return true;
+    }
     /* -------------------------------------------------------------------- */
     /*                                                                      */
     /* Public method*/
@@ -154,11 +167,11 @@ public class RadarWorkers extends Radar {
      * 
      * @return
      */
-    public int getNumberOfFlowNodesWaitingForExecution(long tenantId) {
-        List<Map<String, Object>> listResult = getListFlowNodesWaitingForExecution("count( fln.id )", tenantId, 1, null);
-        if (!listResult.isEmpty() && (!listResult.get(0).isEmpty())) {
-            String keyId = listResult.get(0).keySet().iterator().next();
-            return Integer.parseInt( listResult.get(0).get(keyId).toString());
+    public int getNumberOfFlowNodesWaitingForExecution(long tenantId, long delayInMs ) {
+        StuckFlowNodes stuckFlowNode = getListFlowNodesWaitingForExecution("count( fln.id )", tenantId, 1, delayInMs, null);
+        if (!stuckFlowNode.listStuckFlowNode.isEmpty() && (!stuckFlowNode.listStuckFlowNode.get(0).isEmpty())) {
+            String keyId = stuckFlowNode.listStuckFlowNode.get(0).keySet().iterator().next();
+            return Integer.parseInt( stuckFlowNode.listStuckFlowNode.get(0).get(keyId).toString());
         }
         return -1;
     }
@@ -170,8 +183,13 @@ public class RadarWorkers extends Radar {
      * @param count
      * @return
      */
-    public List<Map<String, Object>> getOldestFlowNodesWaitingForExecution(long tenantId, long count) {
-        return getListFlowNodesWaitingForExecution("fln.ID, fln.STATEID, fln.STATENAME, fln.LASTUPDATEDATE, fln.ROOTCONTAINERID", tenantId, count, "lastupdatedate asc");        
+    public class StuckFlowNodes{
+        public List<Map<String, Object>> listStuckFlowNode = new ArrayList<>();
+        public String sqlQuery;
+        public List<BEvent> listEvents = new ArrayList<>();
+    }
+    public StuckFlowNodes getOldestFlowNodesWaitingForExecution(long tenantId, long count, long delayInMs) {
+        return getListFlowNodesWaitingForExecution("fln.ID, fln.STATEID, fln.STATENAME, fln.LASTUPDATEDATE, fln.ROOTCONTAINERID", tenantId, count, delayInMs, "lastupdatedate asc");        
     }
 
     
@@ -190,29 +208,42 @@ public class RadarWorkers extends Radar {
      * @param orderBy
      * @return
      */
-    private List<Map<String, Object>> getListFlowNodesWaitingForExecution(String selectResult, long tenantId, long count, String orderBy) {
-        String sqlRequest = "SELECT " + selectResult + " FROM FLOWNODE_INSTANCE fln "
+    private StuckFlowNodes  getListFlowNodesWaitingForExecution(String selectResult, long tenantId, long count, long delayInMs, String orderBy) {
+        StuckFlowNodes stuckFlowNodes = new StuckFlowNodes();
+        long lastUpdateDate=System.currentTimeMillis() - delayInMs;
+        stuckFlowNodes.sqlQuery="SELECT " + selectResult + " FROM FLOWNODE_INSTANCE fln "
+                + " WHERE (fln.STATE_EXECUTING = true "
+                + " OR fln.STABLE = false " // false
+                + " OR fln.TERMINAL = true " // true
+                + " OR fln.STATECATEGORY = 'ABORTING' OR fln.STATECATEGORY='CANCELLING') " // only waiting state
+                + " AND fln.TENANTID =  "+tenantId // filter by the tenantId
+                + " AND fln.GATEWAYTYPE <> 'PARALLEL' and fln.GATEWAYTYPE <> 'INCLUSIVE' "
+                + " AND fln.LASTUPDATEDATE <  "+lastUpdateDate
+                + (orderBy != null ? " ORDER BY fln." + orderBy : "");
+        
+        
+        String sqlQuery = "SELECT " + selectResult + " FROM FLOWNODE_INSTANCE fln "
                 + " WHERE (fln.STATE_EXECUTING = ? " // true
                 + " OR fln.STABLE = ? " // false
                 + " OR fln.TERMINAL = ? " // true
                 + " OR fln.STATECATEGORY = 'ABORTING' OR fln.STATECATEGORY='CANCELLING') " // only waiting state
-                + " and fln.TENANTID = ? " // filter by the tenantId
-                + " and fln.LASTUPDATEDATE < ? ";
-        if (orderBy != null)
-            sqlRequest += "ORDER BY fln." + orderBy;
-        List<Map<String, Object>> listResult = new ArrayList<>();
+                + " AND fln.TENANTID = ? " // filter by the tenantId
+                + " AND fln.LASTUPDATEDATE < ? "
+                + " AND fln.GATEWAYTYPE <> 'PARALLEL' and fln.GATEWAYTYPE <> 'INCLUSIVE' "
+                + (orderBy != null ? "ORDER BY fln." + orderBy : "");
+
         
         PreparedStatement pstmt = null;
         ResultSet rs = null;
 
         try (Connection con = BonitaEngineConnection.getConnection(); )
         {
-            pstmt = con.prepareStatement(sqlRequest);
+            pstmt = con.prepareStatement(sqlQuery);
             pstmt.setBoolean(1, true);
             pstmt.setBoolean(2, false);
             pstmt.setBoolean(3, true);
             pstmt.setLong(4, tenantId);
-            pstmt.setLong(5, System.currentTimeMillis() - 1000*60*5); // 5 minutes delay
+            pstmt.setLong(5, lastUpdateDate); // 5 minutes delay
             
             rs = pstmt.executeQuery();
             ResultSetMetaData rmd = pstmt.getMetaData();
@@ -220,16 +251,17 @@ public class RadarWorkers extends Radar {
             while (rs.next() && line < count) {
                 line++;
                 Map<String, Object> record = new HashMap<>();
-                listResult.add(record);
+                stuckFlowNodes.listStuckFlowNode.add(record);
                 for (int column = 1; column <= rmd.getColumnCount(); column++)
                     record.put(rmd.getColumnName(column).toUpperCase(), rs.getObject(column));
             }
-            return listResult;
+            return stuckFlowNodes;
         } catch (Exception e) {
             final StringWriter sw = new StringWriter();
             e.printStackTrace(new PrintWriter(sw));
-            lOGGER.severe(LOGGER_LABEL + "During getCountOfFlowNode : " + e.toString() + " SqlRequest["+sqlRequest+"] at " + sw.toString());
-            return listResult;
+            lOGGER.severe(LOGGER_LABEL + "During getCountOfFlowNode : " + e.toString() + " SqlQuery["+sqlQuery+"] at " + sw.toString());
+            stuckFlowNodes.listEvents.add( new BEvent(eventErrorExecutionQuery, e, " SqlQuery["+sqlQuery+"]" ));
+            return stuckFlowNodes;
         } finally {
             if (rs != null) {
                 try {
