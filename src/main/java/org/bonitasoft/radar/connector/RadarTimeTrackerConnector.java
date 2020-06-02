@@ -1,4 +1,4 @@
-package org.bonitasoft.deepmonitoring.radar.connector;
+package org.bonitasoft.radar.connector;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -12,9 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import org.bonitasoft.deepmonitoring.radar.Radar;
-import org.bonitasoft.deepmonitoring.radar.RadarPhoto;
-import org.bonitasoft.deepmonitoring.radar.RadarPhoto.IndicatorPhoto;
 import org.bonitasoft.engine.api.APIAccessor;
 import org.bonitasoft.engine.service.TenantServiceAccessor;
 import org.bonitasoft.engine.service.impl.SpringTenantServiceAccessor;
@@ -23,6 +20,9 @@ import org.bonitasoft.engine.tracking.Record;
 import org.bonitasoft.engine.tracking.TimeTracker;
 import org.bonitasoft.log.event.BEvent;
 import org.bonitasoft.log.event.BEvent.Level;
+import org.bonitasoft.radar.Radar;
+import org.bonitasoft.radar.RadarPhoto;
+import org.bonitasoft.radar.RadarPhoto.IndicatorPhoto;
 import org.bonitasoft.log.event.BEventFactory;
 
 
@@ -134,12 +134,19 @@ public class RadarTimeTrackerConnector extends Radar {
         return radarResult;
     }
 
+    @Override
+    public boolean hasHtmlDasboard() {
+        return false;
+    }
     /* -------------------------------------------------------------------- */
     /*                                                                      */
     /* Additionnal configuration */
     /*                                                                      */
     /* -------------------------------------------------------------------- */
     
+  
+
+
     private TimeTracker timeTraker=null; 
     private long thresholdDuration;
     private long frameMonitorInMs;

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.bonitasoft.engine.api.APIAccessor;
+import org.bonitasoft.radar.archive.RadarCleanArchivedDross;
 import org.bonitasoft.radar.connector.RadarTimeTrackerConnector;
 import org.bonitasoft.radar.process.RadarCase;
 import org.bonitasoft.radar.sql.RadarSql;
@@ -39,6 +40,7 @@ public class RadarFactory {
         listClassRadars.put(RadarTimeTrackerConnector.CLASS_RADAR_NAME, RadarTimeTrackerConnector.class);
         listClassRadars.put(RadarSql.CLASS_RADAR_NAME, RadarSql.class);
         listClassRadars.put(RadarCase.CLASS_RADAR_NAME, RadarCase.class);
+        listClassRadars.put(RadarCleanArchivedDross.CLASS_RADAR_NAME, RadarCleanArchivedDross.class);
     }
 
     

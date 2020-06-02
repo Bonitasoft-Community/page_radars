@@ -1,4 +1,4 @@
-package org.bonitasoft.deepmonitoring.radar.connector;
+package org.bonitasoft.radar.connector;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bonitasoft.deepmonitoring.tool.BonitaEngineConnection;
+import org.bonitasoft.properties.BonitaEngineConnection;
 import org.bonitasoft.engine.tracking.Record;
 
 public class ConnectorDecorator {
@@ -234,7 +234,7 @@ public class ConnectorDecorator {
 
                 
         try {
-            List<Map<String, Object>> listResult = BonitaEngineConnection.executeSqlRequest(sqlRequest.toString(), listSqlParameters);
+            List<Map<String, Object>> listResult = BonitaEngineConnection.executeSqlRequest(sqlRequest.toString(), listSqlParameters, 100000);
             for (Map<String, Object> result : listResult) {
                 ConnectorDecorator connectorDecorator = mapConnector.get(Long.valueOf(result.get("CONNECTORINSTANCEID").toString()));
                 if (connectorDecorator != null) {

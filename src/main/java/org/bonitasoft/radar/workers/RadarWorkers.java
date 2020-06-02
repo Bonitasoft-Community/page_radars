@@ -217,6 +217,8 @@ public class RadarWorkers extends Radar {
                 + " OR fln.TERMINAL = true " // true
                 + " OR fln.STATECATEGORY = 'ABORTING' OR fln.STATECATEGORY='CANCELLING') " // only waiting state
                 + " AND fln.TENANTID =  "+tenantId // filter by the tenantId
+                + " AND fln.LASTUPDATEDATE < "+lastUpdateDate
+                + " AND fln.kind <> 'call'"
                 + " AND fln.GATEWAYTYPE <> 'PARALLEL' and fln.GATEWAYTYPE <> 'INCLUSIVE' "
                 + " AND fln.LASTUPDATEDATE <  "+lastUpdateDate
                 + (orderBy != null ? " ORDER BY fln." + orderBy : "");
@@ -229,6 +231,7 @@ public class RadarWorkers extends Radar {
                 + " OR fln.STATECATEGORY = 'ABORTING' OR fln.STATECATEGORY='CANCELLING') " // only waiting state
                 + " AND fln.TENANTID = ? " // filter by the tenantId
                 + " AND fln.LASTUPDATEDATE < ? "
+                + " AND fln.kind <> 'call'"
                 + " AND fln.GATEWAYTYPE <> 'PARALLEL' and fln.GATEWAYTYPE <> 'INCLUSIVE' "
                 + (orderBy != null ? "ORDER BY fln." + orderBy : "");
 

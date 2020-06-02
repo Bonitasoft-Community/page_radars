@@ -1,4 +1,4 @@
-package org.bonitasoft.deepmonitoring.radar.connector;
+package org.bonitasoft.radar.connector;
 
 import java.util.ArrayList;
 import java.util.List;

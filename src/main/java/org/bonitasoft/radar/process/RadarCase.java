@@ -1,4 +1,4 @@
-package org.bonitasoft.deepmonitoring.radar.process;
+package org.bonitasoft.radar.process;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -11,14 +11,14 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import org.bonitasoft.custompage.workers.EngineMonitoringAPI;
-import org.bonitasoft.deepmonitoring.radar.Radar;
-import org.bonitasoft.deepmonitoring.radar.RadarPhoto;
-import org.bonitasoft.deepmonitoring.radar.Radar.RadarPhotoParameter;
-import org.bonitasoft.deepmonitoring.radar.Radar.RadarPhotoResult;
-import org.bonitasoft.deepmonitoring.radar.Radar.RadarResult;
-import org.bonitasoft.deepmonitoring.radar.Radar.TypeRadar;
-import org.bonitasoft.deepmonitoring.radar.RadarPhoto.IndicatorPhoto;
-import org.bonitasoft.deepmonitoring.tool.BonitaEngineConnection;
+import org.bonitasoft.properties.BonitaEngineConnection;
+import org.bonitasoft.radar.Radar;
+import org.bonitasoft.radar.RadarPhoto;
+import org.bonitasoft.radar.Radar.RadarPhotoParameter;
+import org.bonitasoft.radar.Radar.RadarPhotoResult;
+import org.bonitasoft.radar.Radar.RadarResult;
+import org.bonitasoft.radar.Radar.TypeRadar;
+import org.bonitasoft.radar.RadarPhoto.IndicatorPhoto;
 import org.bonitasoft.engine.api.APIAccessor;
 import org.bonitasoft.engine.api.ProcessAPI;
 import org.bonitasoft.engine.api.TenantAPIAccessor;
@@ -83,7 +83,8 @@ public class RadarCase extends Radar {
     public RadarPhotoResult takePhoto(RadarPhotoParameter radarPhotoParameter) {
 
         RadarPhotoResult radarPhotoResult = new RadarPhotoResult();
-        RadarPhoto photoWorkers = new RadarPhoto(this, "Workers Thread", "Workers thread");
+        RadarPhoto photoWorkers = new RadarPhoto(this, "Items statistic", "Statistics on Bonita object (Cases)");
+        photoWorkers.startShooting();
         radarPhotoResult.listPhotos.add(photoWorkers);
 
         try {
@@ -91,16 +92,29 @@ public class RadarCase extends Radar {
 
             long processInstance = processAPI.getNumberOfProcessInstances();
 
-            IndicatorPhoto indicatorCases = new IndicatorPhoto( "NbCases");
-            indicatorCases.label = "Nb cases";
+            IndicatorPhoto indicatorCases = new IndicatorPhoto( "NbActivesCases");
+            indicatorCases.label = "Nb Active cases";
             indicatorCases.setValue( processInstance );
+
             photoWorkers.addIndicator(indicatorCases);
+            
+            long archivedProcessInstance = processAPI.getNumberOfArchivedProcessInstances();
+            IndicatorPhoto indicatorArchivedCases = new IndicatorPhoto( "NbAchivedCases");
+            indicatorArchivedCases.label = "Nb Archived cases";
+            indicatorArchivedCases.setValue( archivedProcessInstance );
+            photoWorkers.addIndicator(indicatorArchivedCases);
+
         } catch (Exception e) {
             final StringWriter sw = new StringWriter();
             e.printStackTrace(new PrintWriter(sw));
             logger.severe("During getAllProcessInstance : " + e.toString() + " at " + sw.toString() + " tenantId[" + tenantId + "]");
         }
+        photoWorkers.stopShooting();
         return radarPhotoResult;
     }
 
+    @Override
+    public boolean hasHtmlDasboard() {
+        return true;
+    }
 }
