@@ -99,7 +99,7 @@ public class RadarCleanArchivedDross extends Radar {
         radarPhotoResult.listPhotos.add(photoWorkers);
 
         try {
-            DrossExecution drossesExecution = getStatus(tenantId);
+            DrossExecution drossesExecution = getStatusAll(tenantId);
             for (TypeDross drossExecution : drossesExecution.listDross) {
                 IndicatorPhoto indicatorCases = new IndicatorPhoto(drossExecution.name);
                 indicatorCases.label = drossExecution.label;
@@ -177,6 +177,21 @@ public class RadarCleanArchivedDross extends Radar {
                             "      (select ar.id from process_instance ar " +
                             "        where ar.id = rootprocessinstanceid)",
                     " and sourceobjectid = ?"),
+            
+            
+            new TypeDross("SubProcessWithoutParentProcess",
+                    "Sub Process Without Parent Process",
+                    "A parent process may have been purged, but not the root process.",
+                    " from arch_process_instance " +
+                    " where tenantid=? "+
+                    "  and rootprocessinstanceid != sourceobjectid " +
+                    "  and callerid not in " +
+                    "      (select ar.sourceobjectid from arch_flownode_instance ar " + 
+                    "         where ar.rootcontainerid = rootprocessinstanceid)",
+                    " and sourceobjectid = ?"),
+           
+            
+            
             new TypeDross("ArchivedActivityAttachedToAProcessInstance",
                     "Archived Activity Attached To a ProcessInstance",
                     "A archived activity must be attached to an archived, or active, process instance",
@@ -299,43 +314,81 @@ public class RadarCleanArchivedDross extends Radar {
         public List<BEvent> listEvents = new ArrayList<>();
     }
 
-    public static DrossExecution getStatus(long tenantId) {
-        DrossExecution listDross = new DrossExecution();
+    /**
+     * 
+     * @param tenantId
+     * @return
+     */
+    public static DrossExecution getStatusAll(long tenantId) {
+        DrossExecution drossExecution = new DrossExecution();
         for (TypeDross typeDross : listTypeDross) {
-            TypeDross drossCalculated = typeDross.cloneDross();
-            listDross.listDross.add(drossCalculated);
-
-            long count = drossCalculated.sqlQuery.chars().filter(ch -> ch == '?').count();
-            List<Object> parameters = new ArrayList<>();
-            for (int i = 0; i < count; i++)
-                parameters.add(Long.valueOf(tenantId));
-            SqlExecution sqlExecution = executeQuery("select count(*) as C " + drossCalculated.sqlQuery, parameters);
-            listDross.listEvents.addAll(sqlExecution.listEvents);
-            try {
-                drossCalculated.nbRecordsDetected = Long.valueOf(sqlExecution.record.get("C").toString());
-            } catch (Exception e) {
-            }
-
+            DrossExecution drossExecutionOne = getStatus(tenantId, typeDross); 
+            
+            drossExecution.listDross.addAll(drossExecutionOne.listDross);            
+            drossExecution.listEvents.addAll(drossExecution.listEvents);
         }
-        return listDross;
+        return drossExecution;
     }
+/**
+ * 
+ * @param tenantId
+ * @param typeDross
+ * @return
+ */
+    public static DrossExecution getStatus(long tenantId, TypeDross typeDross) {
+        DrossExecution drossExecution = new DrossExecution();
 
-    public static DrossExecution deleteDross(long tenantId) {
-        DrossExecution listDross = new DrossExecution();
-        for (TypeDross typeDross : listTypeDross) {
-            TypeDross drossCalculated = typeDross.cloneDross();
-            listDross.listDross.add(drossCalculated);
+        TypeDross drossCalculated = typeDross.cloneDross();
+        drossExecution.listDross.add(drossCalculated);
 
-            long count = drossCalculated.sqlQuery.chars().filter(ch -> ch == '?').count();
-            List<Object> parameters = new ArrayList<>();
-            for (int i = 0; i < count; i++)
-                parameters.add(Long.valueOf(tenantId));
-            SqlExecution sqlExecution = executeUpdate("delete " + drossCalculated.sqlQuery, parameters);
-            listDross.listEvents.addAll(sqlExecution.listEvents);
-            drossCalculated.nbRecordsDetected = sqlExecution.nbRow;
-
+        long count = drossCalculated.sqlQuery.chars().filter(ch -> ch == '?').count();
+        List<Object> parameters = new ArrayList<>();
+        for (int i = 0; i < count; i++)
+            parameters.add(Long.valueOf(tenantId));
+        SqlExecution sqlExecution = executeQuery("select count(*) as C " + drossCalculated.sqlQuery, parameters);
+        drossExecution.listEvents.addAll(sqlExecution.listEvents);
+        try {
+            drossCalculated.nbRecordsDetected = Long.valueOf(sqlExecution.record.get("C").toString());
+        } catch (Exception e) {
         }
-        return listDross;
+        return drossExecution;
+        
+    }
+    /**
+     * 
+     * @param tenantId
+     * @return
+     */
+    public static DrossExecution deleteDrossAll(long tenantId) {
+        DrossExecution drossExecution = new DrossExecution();
+        for (TypeDross typeDross : listTypeDross) {
+            DrossExecution drossExecutionOne = deleteDross(tenantId, typeDross); 
+            
+            drossExecution.listDross.addAll(drossExecutionOne.listDross);            
+            drossExecution.listEvents.addAll(drossExecution.listEvents);
+        }
+        
+        return drossExecution;
+    }
+    /**
+     * 
+     * @param tenantId
+     * @param typeDross
+     * @return
+     */
+    public static DrossExecution deleteDross(long tenantId, TypeDross typeDross) {
+        DrossExecution drossExecution = new DrossExecution();
+        TypeDross drossCalculated = typeDross.cloneDross();
+        drossExecution.listDross.add(drossCalculated);
+
+        long count = drossCalculated.sqlQuery.chars().filter(ch -> ch == '?').count();
+        List<Object> parameters = new ArrayList<>();
+        for (int i = 0; i < count; i++)
+            parameters.add(Long.valueOf(tenantId));
+        SqlExecution sqlExecution = executeUpdate("delete " + drossCalculated.sqlQuery, parameters);
+        drossExecution.listEvents.addAll(sqlExecution.listEvents);
+        drossCalculated.nbRecordsDetected = sqlExecution.nbRow;
+        return drossExecution;
     }
 
     /* -------------------------------------------------------------------- */
