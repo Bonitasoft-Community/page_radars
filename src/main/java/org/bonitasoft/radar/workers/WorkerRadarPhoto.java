@@ -173,7 +173,7 @@ public class WorkerRadarPhoto  extends RadarPhoto {
            indicatorPhoto.isMainIndicator = true;
            indicatorPhoto.setValue( countRunnable+countBlocked+countTimedWaiting );
            indicatorPhoto.setPercent( totalNumberThread ==0 ? 0 : (100* (countRunnable+countBlocked+countTimedWaiting)) / totalNumberThread);
-           if ( indicatorPhoto.getValue() > 80)
+           if ( indicatorPhoto.getValueLong(0) > 80)
             indicatorPhoto.analysis = "Works pool used, consider increased the number of Connector worker is CPU and Memory are low";
           else
             indicatorPhoto.analysis = "Working correctly";
@@ -187,7 +187,7 @@ public class WorkerRadarPhoto  extends RadarPhoto {
            int totalNumberThread = countRunnable +countBlocked+ countWaiting+countTimedWaiting;
            indicatorPhoto.setValue( countRunnable+countBlocked );
            indicatorPhoto.setPercent( totalNumberThread ==0 ? 0 : (100* (countRunnable+countBlocked)) / totalNumberThread );
-           if ( indicatorPhoto.getValue() > 80)
+           if ( indicatorPhoto.getValueLong(0) > 80)
             indicatorPhoto.analysis = "Connectors used, consider increased the number of Connector worker is CPU and Memory are low";
           else
             indicatorPhoto.analysis = "Working correctly";

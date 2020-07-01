@@ -30,7 +30,6 @@ public class RadarPhoto {
     private String label;
     private Date datePhoto;
 
-    
     private List<BEvent> listEvents = new ArrayList<>();
     private Radar radar;
     private List<IndicatorPhoto> listIndicators = new ArrayList<>();
@@ -50,14 +49,14 @@ public class RadarPhoto {
 
         /**
          * private to avoid error.
-         * A indicator can contains value AND percent (optional). If containsPercent is true, then it's contains a percent 
+         * A indicator can contains value AND percent (optional). If containsPercent is true, then it's contains a percent
+         * Value can be a Double, a Long, or any object in fact
          */
-        private double value;
+        private Object value;
         private boolean containsValue = false;
         private double valuePercent;
         private boolean containsPercent = false;
-        
-        
+
         public IndicatorPhoto(String name) {
             this.name = name;
         }
@@ -65,27 +64,52 @@ public class RadarPhoto {
         public String getName() {
             return name;
         }
-        public void setValue( double value ) {
+
+        public void setValue(Object value) {
             this.containsValue = true;
             this.value = value;
         }
-        public void setPercent( double value ) {
-            this.containsPercent=true;
+
+        public void setPercent(double value) {
+            this.containsPercent = true;
             this.valuePercent = value;
         }
+
         /**
-         * return the value. 
+         * return the value.
+         * 
          * @return
          */
-        public double getValue() {
+        public Object getValue() {
             return value;
         }
+
+        
+        public double getValueDouble( double defaultValue ) {
+            try {
+                return value == null ? 0 : Double.parseDouble(value.toString());
+            } catch (Exception e) {
+                return defaultValue;
+            }
+        }
+
+        public long getValueLong(long defaultValue ) {
+            try {
+                return value == null ? 0 : Long.parseLong(value.toString());
+            } catch (Exception e) {
+                return defaultValue;
+            }
+        }
+
         public double getValuePercent() {
             return valuePercent;
         }
+
         public boolean isValue() {
             return containsValue;
         }
+
+
         public boolean isPercent() {
             return containsPercent;
         }
@@ -103,7 +127,7 @@ public class RadarPhoto {
 
             return indicatorMap;
         }
-        
+
     }
 
     public static class DataHeaderPhoto {
@@ -144,7 +168,6 @@ public class RadarPhoto {
         // default value
         this.startShooting();
 
-
     }
 
     public Radar getRadar() {
@@ -153,30 +176,34 @@ public class RadarPhoto {
 
     /* -------------------------------------------------------------------- */
     /*                                                                      */
-    /* Shooting information*/
+    /* Shooting information */
     /*                                                                      */
     /* -------------------------------------------------------------------- */
     private long startShootingTime;
     private long stopShootingTime;
-    private Long explicitStopShooting=null;
+    private Long explicitStopShooting = null;
+
     public void startShooting() {
         this.startShootingTime = System.currentTimeMillis();
-        this.stopShootingTime =this.startShootingTime; 
+        this.stopShootingTime = this.startShootingTime;
     }
+
     public void stopShooting() {
         this.explicitStopShooting = System.currentTimeMillis();
     }
+
     public long getTimeExecution() {
-        return (explicitStopShooting==null ? this.stopShootingTime : explicitStopShooting.longValue()) - this.startShootingTime;
+        return (explicitStopShooting == null ? this.stopShootingTime : explicitStopShooting.longValue()) - this.startShootingTime;
     }
     /* -------------------------------------------------------------------- */
     /*                                                                      */
     /* Register data */
     /*                                                                      */
     /* -------------------------------------------------------------------- */
-    
+
     /**
-     * Indicator carry the main value 
+     * Indicator carry the main value
+     * 
      * @param indicator
      */
     public void addIndicator(IndicatorPhoto indicator) {
@@ -186,11 +213,12 @@ public class RadarPhoto {
     }
 
     public List<IndicatorPhoto> getListIndicators() {
-    return listIndicators;
-}
-    
+        return listIndicators;
+    }
+
     /**
      * A photo can carry additional informations, in plus than indicator
+     * 
      * @param dataHeader
      */
     public void addDataHeader(DataHeaderPhoto dataHeader) {
@@ -199,7 +227,6 @@ public class RadarPhoto {
         listHeader.add(dataHeader);
     }
 
-   
     /* -------------------------------------------------------------------- */
     /*                                                                      */
     /*                                                                      */
@@ -210,7 +237,7 @@ public class RadarPhoto {
         Map<String, Object> map = new HashMap<>();
         map.put("datephotoms", datePhoto.getTime());
         map.put("timeexecutionms", getTimeExecution());
-        
+
         // a radar photo provide : main information
         map.put("label", label);
         map.put("name", name);
