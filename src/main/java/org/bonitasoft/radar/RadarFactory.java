@@ -10,6 +10,7 @@ import org.bonitasoft.engine.api.APIAccessor;
 import org.bonitasoft.radar.archive.RadarCleanArchivedDross;
 import org.bonitasoft.radar.connector.RadarTimeTrackerConnector;
 import org.bonitasoft.radar.process.RadarCase;
+import org.bonitasoft.radar.process.RadarProcess;
 import org.bonitasoft.radar.sql.RadarSql;
 import org.bonitasoft.radar.workers.RadarWorkers;
 
@@ -81,6 +82,8 @@ public class RadarFactory {
                 radar = new RadarSql(name,tenantId, apiAccessor);
             else if (RadarCase.CLASS_RADAR_NAME.equals(className))
                 radar = new RadarCase(name,tenantId, apiAccessor);
+            else if (RadarProcess.CLASS_RADAR_NAME.equals(className))
+                radar = new RadarProcess(name,tenantId, apiAccessor);
             if (radar==null)
                 return null;
             listRadars.add(radar);
