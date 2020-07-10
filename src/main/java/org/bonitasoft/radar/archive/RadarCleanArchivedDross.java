@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import org.bonitasoft.engine.api.APIAccessor;
+import org.bonitasoft.engine.bpm.flownode.FlowNodeType;
 import org.bonitasoft.log.event.BEvent;
 import org.bonitasoft.log.event.BEvent.Level;
 import org.bonitasoft.log.event.BEventFactory;
@@ -130,13 +131,15 @@ public class RadarCleanArchivedDross extends Radar {
         public String name;
         public String label;
         public String explanation;
+        public boolean onActiveTable;
         public String sqlQuery;
         public String limiterToOneProcessInstance;
 
-        public TypeDrossDefinition(String name, String label, String explanation, String sqlQuery, String limiterToOneProcessInstance) {
+        public TypeDrossDefinition(String name, String label, String explanation, boolean onActiveTable, String sqlQuery, String limiterToOneProcessInstance) {
             this.name = name;
             this.label = label;
             this.explanation = explanation;
+            this.onActiveTable = onActiveTable;
             this.sqlQuery = sqlQuery;
             this.limiterToOneProcessInstance = limiterToOneProcessInstance;
         }
@@ -178,46 +181,52 @@ public class RadarCleanArchivedDross extends Radar {
             new TypeDrossDefinition("PRO1/ProcessWithoutTerminateEvent",
                     "Process Inconsistent",
                     "A archived process instance record (state!=3,4,6) must reference a archived (state=6), or active, process instance",
+                    false,
                     " from arch_process_instance " +
                             " where tenantid = ? " +
                             "   and stateid not in (3,4,6)" +
-                            "   and sourceobjectid not in" +
-                            "    (select ar.sourceobjectid from arch_process_instance ar " +
-                            "       where ar.stateid in (3,4,6) and ar.sourceobjectid = sourceobjectid)" +
-                            "   and sourceobjectid not in (select ar.id from process_instance ar where ar.id = arch_process_instance.sourceobjectid)",
+                            "   and not exists " +
+                            "    (select * from arch_process_instance ar " +
+                            "       where arch_process_instance.sourceobjectid = ar.sourceobjectid and ar.stateid in (3,4,6))" +
+                            "   and not exists (select * from process_instance ar where arch_process_instance.sourceobjectid = ar.id and ar.tenantid=? )",
                     " and sourceobjectid = ?"),
             new TypeDrossDefinition("PRO2/SubProcessWithoutRootProcess",
                     "Sub Process Without Root Process",
                     "A sub process record reference a root process, which must exists in the Arch table or the Active table.",
+                    false,
                     " from arch_process_instance " +
                             " where tenantid=? " +
                             "   and rootprocessinstanceid != sourceobjectid" +
-                            "   and rootprocessinstanceid not in " +
-                            "      (select ar.rootprocessinstanceid from arch_process_instance ar " +
-                            "        where ar.rootprocessinstanceid = ar.sourceobjectid " +
-                            "            and ar.rootprocessinstanceid = arch_process_instance.rootprocessinstanceid)" +
-                            "    and rootprocessinstanceid not in " +
-                            "      (select ar.id from process_instance ar " +
-                            "        where ar.id = arch_process_instance.rootprocessinstanceid)",
+                            "   and not exists " +
+                            "      (select * from arch_process_instance ar " +
+                            "        where arch_process_instance.rootprocessinstanceid =  ar.rootprocessinstanceid  " +
+                            "             and ar.rootprocessinstanceid = ar.sourceobjectid and ar.tenantid=? )" +
+                            "    and not exists " +
+                            "      (select * from process_instance ar " +
+                            "        where arch_process_instance.rootprocessinstanceid = ar.id and ar.tenantid=? )",
                     " and sourceobjectid = ?"),
 
             new TypeDrossDefinition("PRO3/SubProcessWithoutParentProcess",
                     "Sub Process Without Parent Process",
                     "A parent process may have been purged, but not the root process.",
+                    false,
                     " from arch_process_instance " +
                             " where tenantid=? " +
                             "  and rootprocessinstanceid != sourceobjectid " +
-                            "  and callerid not in " +
-                            "      (select ar.sourceobjectid from arch_flownode_instance ar " +
-                            "         where ar.rootcontainerid = arch_process_instance.rootprocessinstanceid)",
+                            "  and not exists " +
+                            "      (select * from arch_flownode_instance ar " +
+                            "         where arch_process_instance.callerid = ar.sourceobjectid and arch_process_instance.tenantid=?)",
                     " and sourceobjectid = ?"),
 
             new TypeDrossDefinition("PRO4/ArchiveProcessInstanceWithDefinition",
                     "Archive Process instance without Process definition ",
                     "An archive processinstance must be attached to a Process definition",
+                    false,
                     " from arch_process_instance " +
                             " where tenantid=? " +
-                            "  and processdefinitionid not in (select processid from process_definition where process_definition.tenantid=arch_process_instance.tenantid )",
+                            "  and not exists " +
+                            "   (select * from process_definition " +
+                            "     where arch_process_instance.processdefinitionid=process_definition.processid and process_definition.tenantid=? )",
                     " and id= ?"),
 
             /**
@@ -226,136 +235,217 @@ public class RadarCleanArchivedDross extends Radar {
              * - to a ROOT flownode instance, archived or not
              * note : if the flow node is attached to a sub process and the sub process diseapear, this request does not detect it.
              */
-            /*
-            new TypeDrossDefinition("FLN1/ArchivedFlowNodeAttachedToARootProcessInstance",
-                    "Archived Activity Attached To a ProcessInstance",
-                    "A archived activity must be attached to an archived, or active, process instance or an activity",
+
+            new TypeDrossDefinition("RFL1/ArchivedGateMultiLoopSubProcessFlowNodeAttachedToAProcessInstance",
+                    "Archived GATE/MULTI/LOOP/SUBPROCESS Not attached To a ProcessInstance",
+                    "A archived GATE/MULTI/LOOP/SUBPROCESS must be attached to an archived process instance (even a active process instance has an archived on)",
+                    false,
                     " from arch_flownode_instance " +
                             " where tenantid=? " +
-                            "  and parentcontainerid not in (select ar.sourceobjectid from arch_process_instance ar where ar.tenantid=? and ar.rootprocessinstanceid = arch_flownode_instance.rootcontainerid )" +
-                            "  and parentcontainerid not in (select po.id from process_instance po where po.tenantid=?  and po.rootprocessinstanceid = arch_flownode_instance.rootcontainerid)" +
-                            "  and parentcontainerid not in (select arfln.sourceobjectid from arch_flownode_instance arfln where arfln.tenantid=? and arfln.rootcontainerid = arch_flownode_instance.rootcontainerid)" +
-                            "  and parentcontainerid not in (select fln.id from flownode_instance fln where fln.tenantid=? and fln.rootcontainerid = arch_flownode_instance.rootcontainerid)",
+                            " and kind in ('gate','multi', 'loop', 'subProc')" +
+                            " and not exists" +
+                            "  (select * from arch_process_instance ar " +
+                            "     where arch_flownode_instance.parentcontainerid = ar.sourceobjectid and ar.tenantid=? )",
+                    " and parentcontainerid=?"),
 
-                    " and parentcontainerid=?"),
-*/
-            new TypeDrossDefinition("FLN2/FlowNodeWithoutRootProcessInstance",
-                    "Flow Node without process instance",
-                    "A flow-node must be attached to an archived, or active, process instance",
+            new TypeDrossDefinition("RLN2/ArchivedActivityFlowNodeAttachedToAParent",
+                    "Archived Activity not attached To a Parent",
+                    "An archived activity must be attached to a Process instance (even an active process instance has an archived record) or a MULTI activity",
+                    false,
+                    " from arch_flownode_instance " +
+                            " where tenantid=? " +
+                            " and not exists " +
+                            "  (select * from arch_process_instance ar " +
+                            "      where arch_flownode_instance.parentcontainerid = ar.sourceobjectid and ar.tenantid=?)" +
+                            " and not exists " +
+                            "    (select ar.sourceobjectid from arch_flownode_instance ar " +
+                            "      where arch_flownode_instance.parentcontainerid = ar.sourceobjectid and ar.tenantid=? and ar.kind in ('multi', 'loop') )" +
+                            " and kind in ('call', 'user', 'auto', 'send','receive', 'manual')",
+                    " and id=?"),
+
+            new TypeDrossDefinition("ALN1/GateMultiLoopFlowNodeAttachedToAProcessInstance",
+                    "Active GATE/MULTI/LOOP/SUBPROCESS Not attached To a ProcessInstance",
+                    "An active GATE/MULTI/LOOP/SUBPROCESS must be attached to an active process instance ",
+                    true,
                     " from flownode_instance " +
-                            " where tenantid=?" +
-                            " and parentcontainerid not in (select po.id from process_instance po where po.tenantid=? and po.rootprocessinstanceid = flownode_instance.rootcontainerid)" +
-                            " and parentcontainerid not in (select po.id from flownode_instance po where po.tenantid=? and po.rootcontainerid = flownode_instance.rootcontainerid)",
-                    " and parentcontainerid=?"),
+                            " where tenantid=? " +
+                            " and kind in ('gate','multi', 'loop', 'subProc')" +
+                            " and not exists (select * from process_instance pi " +
+                            "      where flownode_instance.parentcontainerid = pi.id and  pi.tenantid=? and pi.rootprocessinstanceid = flownode_instance.rootcontainerid )",
+                    " and id=?"),
+            new TypeDrossDefinition("ALN2/ActivityFlowNodeAttachedToAParent",
+                    "Activity not attached To a Parent",
+                    "An activity must be attached to a Process instance (even an active process instance has an archived record) or a MULTI activity",
+                    true,
+                    " from flownode_instance " +
+                            " where tenantid=? " +
+                            " and not exists (select * from process_instance pi " +
+                            "         where flownode_instance.parentcontainerid=pi.id and pi.tenantid=? and pi.rootprocessinstanceid = flownode_instance.rootcontainerid )" +
+                            " and not exists (select * from arch_flownode_instance ar " +
+                            "         where flownode_instance.parentcontainerid=ar.sourceobjectid and ar.tenantid=1 and ar.rootprocessinstanceid = flownode_instance.rootcontainerid " +
+                            "            and ar.kind in ('multi', 'loop') ) " +
+                            " and kind in ('call', 'user', 'auto', 'send','receive', 'manual')",
+                    " and id=?"),
 
             new TypeDrossDefinition("DAT1/ProcessDataInstanceWithoutProcessInstance",
                     "Process Data Without Process Instance",
                     "A Process Data must be attached to an archived, or active, process instance",
+                    false,
                     " from arch_data_instance " +
                             "where tenantid=?" +
                             " and containertype='PROCESS_INSTANCE' " +
-                            " and containerid not in (select ar.sourceobjectid from arch_process_instance ar where ar.tenantid=?)" +
-                            " and containerid not in (select po.id from process_instance po where po.tenantid=?)",
+                            " and not exists "
+                            + "  (select * from arch_process_instance ar " +
+                            "      where arch_data_instance.containerid = ar.sourceobjectid and ar.tenantid=?)" +
+                            " and not exists " +
+                            "  (select * from process_instance po " +
+                            "     where arch_data_instance.containerid = po.id and po.tenantid=?)",
                     " and containerid=?"),
 
             new TypeDrossDefinition("DAT2/ActivityDataInstanceWithoutActivityInstance",
                     "Activity Data without an activity instance",
                     "An activity data must be attached to an archived, or active, activity instante",
+                    false,
                     "from arch_data_instance " +
                             " where tenantid=?" +
                             "  and containertype='ACTIVITY_INSTANCE' " +
-                            "  and containerid not in (select fl.sourceobjectid from arch_flownode_instance fl where fl.tenantid=?)",
+                            "  and not exists " +
+                            "  (select * from arch_flownode_instance fl " +
+                            "    where arch_data_instance.containerid = fl.sourceobjectid and fl.tenantid=?)",
                     " and containerid=?"),
 
             new TypeDrossDefinition("CTR1/ProcessContractDataWithoutProcessInstance",
                     "Process Contract Data without a process instance",
                     "A Contract data attached to an archived, or active, process instance",
+                    false,
                     " from arch_contract_data " +
                             " where tenantid=?" +
                             " and kind='PROCESS' " +
-                            " and scopeid not in (select ar.sourceobjectid from arch_process_instance ar where ar.tenantid=? )" +
-                            " and scopeid not in (select po.id from process_instance po where po.tenantid=?)",
+                            " and not exists (select * from arch_process_instance ar " +
+                            "      where arch_contract_data.scopeid = ar.sourceobjectid and ar.tenantid=? )" +
+                            " and not exists (select * from process_instance po " +
+                            "      where arch_contract_data.scopeid = po.id and po.tenantid=?)",
                     "and scopeid=?"),
 
             new TypeDrossDefinition("CTR2/ActivityContractDataWithoutActivityInstance",
                     "Activity contract data without an activity instance",
                     "A Activity Contract data must be attached to an archived, or active, activity instance",
+                    false,
                     " from arch_contract_data " +
                             " where tenantid=?" +
                             " and kind='TASK' " +
-                            " and scopeid not in (select ar.sourceobjectid from arch_flownode_instance ar where ar.tenantid=?)" +
-                            " and scopeid not in (select po.id from flownode_instance po where po.tenantid=?)",
+                            " and not exists (select * from arch_flownode_instance ar " +
+                            "      where arch_contract_data.scopeid = ar.sourceobjectid and ar.tenantid=?)" +
+                            " and not exists (select * from flownode_instance po " +
+                            "      where  arch_contract_data.scopeid = po.id and po.tenantid=?)",
                     " and scopeid in (select ar.sourceobjectid from arch_flownode_instance ar where ar.tenantid=arch_contract_data.tenantid and ar.sourceobjectid=?)"),
 
             new TypeDrossDefinition("DOC1/DocumentMappingWithoutProcessInstance",
                     "Document mapping without a process instance",
                     "A Document Mapping must be attached to an archived, or active, process instance",
+                    false,
                     " from document_mapping " +
                             " where tenantid=?" +
-                            " and processinstanceid not in (select ar.sourceobjectid from arch_process_instance ar where ar.tenantid=?)" +
-                            " and processinstanceid not in (select po.id from process_instance po where po.tenantid=?)",
+                            " and not exists (select * from arch_process_instance ar " +
+                            "          where document_mapping.processinstanceid= ar.sourceobjectid and ar.tenantid=?)" +
+                            " and not exists (select * from process_instance po " +
+                            "          where document_mapping.processinstanceid=po.id and po.tenantid=?)",
                     "and processintanceid=?"),
 
             new TypeDrossDefinition("DOC2/DocumentWithoutDocumentMapping",
                     "Document Without Mapping ",
                     "A Document must be attached to a document mapping",
+                    false,
                     " from document " +
                             " where tenantid=?" +
-                            " and id not in (select documentid from document_mapping where tenantid=?)" +
-                            " and id not in (select documentid from arch_document_mapping where tenantid=?)",
+                            " and not exists (select * from document_mapping dm  " +
+                            "    where document.id= dm.documentid and dm.tenantid=?)" +
+                            " and not exists (select * from arch_document_mapping dm " +
+                            "    where document.id= dm.documentid and dm.tenantid=?)",
                     " and id in (select documentid from arch_document_mapping adm where adm.processid=?)"),
 
             new TypeDrossDefinition("CON1/ConnectorWithoutFlowNodeInstance",
                     "Connector without flow node",
                     "A Connector must be attached to an archived, or active, process instance",
+                    false,
                     " from ARCH_CONNECTOR_INSTANCE " +
                             " where tenantid=?" +
                             " and CONTAINERTYPE = 'flowNode'" +
-                            " and containerid not in (select ar.sourceobjectid from arch_flownode_instance ar where ar.tenantid=? )",
+                            " and not exists (select * from arch_flownode_instance ar " +
+                            "     where ARCH_CONNECTOR_INSTANCE.containerid = ar.sourceobjectid and ar.tenantid=? )",
                     "and containerid in (select ar.sourceobjectid from arch_flownode_instance ar where ar.tenantid=ARCH_CONNECTOR_INSTANCE.tenantid and ar.parentcontainerid=?)"),
 
             new TypeDrossDefinition("CON2/ConnectorWithoutFlowNodeInstance",
                     "Connector Without Flow Node instance",
                     "A Connector must be attached to an archived, or active, flow node instance",
+                    false,
                     " from ARCH_CONNECTOR_INSTANCE " +
                             " where tenantid=?" +
                             " and CONTAINERTYPE= 'process'" +
-                            " and containerid not in (select ar.sourceobjectid from arch_process_instance ar where tenantid=?)",
+                            " and not exists (select * from arch_process_instance ar " +
+                            "    where ARCH_CONNECTOR_INSTANCE.containerid = ar.sourceobjectid and ar.tenantid=?)",
                     "and containerid=?"),
 
             new TypeDrossDefinition("COM1/CommentWithoutProcessInstance",
                     "Comment Without process instance",
                     "A comment must be attached to an archived, or active, process instance",
+                    false,
                     " from ARCH_PROCESS_COMMENT " +
                             " where tenantid=?" +
-                            " and processinstanceid not in (select ar.sourceobjectid from arch_process_instance ar where ar.tenantid=? )" +
-                            " and processinstanceid not in (select po.id from process_instance po where po.tenantid=?)",
+                            " and not exists (select * from arch_process_instance ar " +
+                            "     where ARCH_PROCESS_COMMENT.processinstanceid=ar.sourceobjectid and  ar.tenantid=? )" +
+                            " and not exists (select * from process_instance po " +
+                            "     where ARCH_PROCESS_COMMENT.processinstanceid=po.id and po.tenantid=?)",
                     " and processintanceid=?"),
 
             new TypeDrossDefinition("BUS1/BusinessReferenceWithoutProcessInstance",
                     "Business Reference without process instance",
                     "A Business Reference must be attached to an archived, or active, process instance",
+                    false,
                     " from ARCH_REF_BIZ_DATA_INST " +
                             " where tenantid=?" +
-                            " and orig_proc_inst_id not in (select ar.sourceobjectid from arch_process_instance ar where ar.tenantid=? )",
+                            " and not exists (select * from arch_process_instance ar " +
+                            "    where ARCH_REF_BIZ_DATA_INST.orig_proc_inst_id =ar.sourceobjectid and ar.tenantid=? )",
                     "and orig_proc_inst_id=? "),
 
-            new TypeDrossDefinition("DEP1/DependencyMapping",
-                    "Dependency Mapping",
+            new TypeDrossDefinition("DEP1/ProcessDependencyMapping",
+                    "Process Dependency Mapping",
                     "A PROCESS Dependency mapping must be attached to a process definition",
+                    false,
                     " from PDEPENDENCYMAPPING " +
                             " where artifacttype='PROCESS' " +
-                            "  and artifactid not in (select processid from process_definition)",
+                            " and not exists (select * from process_definition where PDEPENDENCYMAPPING.artifactid = processid)",
+                    "and id=? "),
+
+            new TypeDrossDefinition("DEP3/Dependency",
+                    "Dependency Mapping",
+                    "A PROCESS Dependency mapping must be attached to a process definition",
+                    false,
+                    " from dependencymapping " +
+                            " where tenantid=?" +
+                            "  and artifacttype='PROCESS'" +
+                            "  and not exists (select * from process_definition where dependencymapping.artifactid = processid and process_definition.tenantid=?)",
+                    "and id=? "),
+            new TypeDrossDefinition("DEP4/DependencyMapping",
+                    "Dependency Mapping",
+                    "A Dependency must be attached to a dependency mapping",
+                    false,
+                    " from dependency " +
+                            " where tenantid=?" +
+                            "    and not exists (select * from dependencymapping " +
+                            "        where dependency.id=dependencymapping.dependencyid and dependencymapping.tenantid=?)",
                     "and id=? "),
 
             new TypeDrossDefinition("FRM1/FormDependency",
                     "Form Mapping",
                     "A form must be attached to a process definition",
+                    false,
                     " from page " +
                             " where tenantid=?" +
-                            "  and contenttype='form' " +
-                            "  and processdefinitionid > 0 " +
-                            "  and processdefinitionid not in (select processid from process_definition where process_definition.tenantid = page.tenantid)",
+                            "    and contenttype='form' " +
+                            "    and processdefinitionid > 0 " +
+                            "    and not exists (select * from process_definition " +
+                            "       where page.processdefinitionid = process_definition.processid and process_definition.tenantid = ?)",
                     "and id=? ")
 
     };
