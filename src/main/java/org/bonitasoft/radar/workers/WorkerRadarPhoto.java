@@ -105,8 +105,8 @@ public class WorkerRadarPhoto  extends RadarPhoto {
     //worker
     public List< WorkerPhoto> listWorkers = new ArrayList< >();
     
-    // 
-    long workerQueueNumber;
+    // Queue Number in Database
+    long workerQueueInDatabaseNumber;
     
     
     public WorkerPhoto createWorkerPhoto( int workerId, Thread th )
@@ -158,14 +158,14 @@ public class WorkerRadarPhoto  extends RadarPhoto {
         if (isWorker)
         {
           IndicatorPhoto indicatorPhoto = new IndicatorPhoto("WorkerQueueNumber");
-          indicatorPhoto.label="Worker Queue Number";
-          indicatorPhoto.setValue( workerQueueNumber );
+          indicatorPhoto.label="Database FlowNodes waiting to be executed/executed";
+          indicatorPhoto.setValue( workerQueueInDatabaseNumber );
           indicatorPhoto.isMainIndicator = true;
           int totalNumberThread = countRunnable +countBlocked+ countWaiting+countTimedWaiting;
-          if (workerQueueNumber < totalNumberThread)
+          if (workerQueueInDatabaseNumber < totalNumberThread)
             indicatorPhoto.analysis = "No waiting list, all in progress";
           else
-            indicatorPhoto.analysis = "Waiting list : "+( workerQueueNumber - totalNumberThread);
+            indicatorPhoto.analysis = "Waiting list supposed : "+( workerQueueInDatabaseNumber - totalNumberThread);
           addIndicator( indicatorPhoto );
           
           indicatorPhoto = new IndicatorPhoto("WorkerPoolLoad");

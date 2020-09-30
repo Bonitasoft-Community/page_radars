@@ -19,6 +19,7 @@ import org.bonitasoft.log.event.BEvent;
 import org.bonitasoft.log.event.BEvent.Level;
 import org.bonitasoft.properties.BonitaEngineConnection;
 import org.bonitasoft.radar.Radar;
+import org.bonitasoft.radar.jmx.JmxCall;
 
 
 /* -------------------------------------------------------------------- */
@@ -134,9 +135,9 @@ public class RadarWorkers extends Radar {
 
         // now synthesis database
         int delayInMs=1000*60*5; // 5 mn
-        photoWorkers.workerQueueNumber = getNumberOfFlowNodesWaitingForExecution(tenantId,delayInMs);
-        if (photoWorkers.workerQueueNumber == -1)
-            photoWorkers.workerQueueNumber = 0;
+        photoWorkers.workerQueueInDatabaseNumber = getNumberOfFlowNodesWaitingForExecution(tenantId,delayInMs);
+        if (photoWorkers.workerQueueInDatabaseNumber == -1)
+            photoWorkers.workerQueueInDatabaseNumber = 0;
 
         // In this node
         // JMX 
@@ -144,7 +145,10 @@ public class RadarWorkers extends Radar {
         // bonitaBpmengineWorkRunning.tenant.1
         // bonitaBpmengineConnectorPending.tenant.1
         // bonitaBpmengineConnectorRunning.tenant.1
+        // JmxCall jmx = new JmxCall();
+        // jmx.connectJmx();
         
+
         // compute the main indicator
         photoWorkers.compute(true);
         photoConnector.compute(false);
@@ -211,7 +215,10 @@ public class RadarWorkers extends Radar {
     private StuckFlowNodes  getListFlowNodesWaitingForExecution(String selectResult, long tenantId, long count, long delayInMs, String orderBy) {
         StuckFlowNodes stuckFlowNodes = new StuckFlowNodes();
         long lastUpdateDate=System.currentTimeMillis() - delayInMs;
-        stuckFlowNodes.sqlQuery="SELECT " + selectResult + " FROM FLOWNODE_INSTANCE fln "
+        
+        /**
+         * these request is used at the STARTER event to search which Flownodes has to be re-evaluate.
+         *  "SELECT " + selectResult + " FROM FLOWNODE_INSTANCE fln "
                 + " WHERE (fln.STATE_EXECUTING = true "
                 + " OR fln.STABLE = false " // false
                 + " OR fln.TERMINAL = true " // true
@@ -222,19 +229,23 @@ public class RadarWorkers extends Radar {
                 + " AND fln.GATEWAYTYPE <> 'PARALLEL' and fln.GATEWAYTYPE <> 'INCLUSIVE' "
                 + " AND fln.LASTUPDATEDATE <  "+lastUpdateDate
                 + (orderBy != null ? " ORDER BY fln." + orderBy : "");
+ 
+         */
+        /**
+         * THis one is used to get from the database all flow nodes waiting to be executed (or currently executed)
+         */
+        stuckFlowNodes.sqlQuery="SELECT " + selectResult + " FROM FLOWNODE_INSTANCE fln "
+                + " WHERE (fln.kind = 'user' and state_executing= true )" // true
+                + " OR (kind='auto')"
+                + (orderBy != null ? " ORDER BY fln." + orderBy : "");
         
         
         String sqlQuery = "SELECT " + selectResult + " FROM FLOWNODE_INSTANCE fln "
-                + " WHERE (fln.STATE_EXECUTING = ? " // true
-                + " OR fln.STABLE = ? " // false
-                + " OR fln.TERMINAL = ? " // true
-                + " OR fln.STATECATEGORY = 'ABORTING' OR fln.STATECATEGORY='CANCELLING') " // only waiting state
-                + " AND fln.TENANTID = ? " // filter by the tenantId
-                + " AND fln.LASTUPDATEDATE < ? "
-                + " AND fln.kind <> 'call'"
-                + " AND fln.GATEWAYTYPE <> 'PARALLEL' and fln.GATEWAYTYPE <> 'INCLUSIVE' "
+                + " WHERE (fln.kind = 'user' and state_executing= ? )" // true
+                + " OR (kind='auto')"
                 + (orderBy != null ? "ORDER BY fln." + orderBy : "");
 
+        
         
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -243,10 +254,6 @@ public class RadarWorkers extends Radar {
         {
             pstmt = con.prepareStatement(sqlQuery);
             pstmt.setBoolean(1, true);
-            pstmt.setBoolean(2, false);
-            pstmt.setBoolean(3, true);
-            pstmt.setLong(4, tenantId);
-            pstmt.setLong(5, lastUpdateDate); // 5 minutes delay
             
             rs = pstmt.executeQuery();
             ResultSetMetaData rmd = pstmt.getMetaData();
