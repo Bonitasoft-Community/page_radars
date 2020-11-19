@@ -138,7 +138,13 @@ public class Actions {
                 return actionAnswer;
             }
             actionAnswer.isManaged=true;
-
+            
+            //Make sure no action is executed if the CSRF protection is active and the request header is invalid
+            if (! TokenValidator.checkCSRFToken(request, response)) {
+                actionAnswer.isResponseMap=false;
+                return actionAnswer;
+            }
+                         
             APISession apiSession = pageContext.getApiSession();
             HttpSession httpSession = request.getSession();
             ProcessAPI processAPI = TenantAPIAccessor.getProcessAPI(apiSession);

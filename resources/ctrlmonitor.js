@@ -6,19 +6,7 @@
 (function() {
 
 
-var appCommand = angular.module('ctrlmonitor', ['googlechart', 'ui.bootstrap','ngSanitize', 'ngModal', 'ngMaterial']);
-
-
-/* Material : for the autocomplete
- * need
-  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.min.js"></script>
-  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-animate.min.js"></script>
-  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-aria.min.js"></script>
-  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-messages.min.js"></script>
-
-  <!-- Angular Material Library -->
-  <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.js">
- */
+var appCommand = angular.module('ctrlmonitor', ['googlechart', 'ui.bootstrap','ngSanitize', 'ngModal', 'ngMaterial',  'ngCookies']);
 
 
 
@@ -30,7 +18,7 @@ var appCommand = angular.module('ctrlmonitor', ['googlechart', 'ui.bootstrap','n
 
 // Ping the server
 appCommand.controller('CtrlControler',
-	function ( $http, $scope,$sce,$filter ) {
+	function ( $http, $scope, $sce, $filter, $cookies ) {
 
 	this.pingdate='';
 	this.pinginfo='';
@@ -38,6 +26,18 @@ appCommand.controller('CtrlControler',
 	this.inprogress=false;
 
 	this.radars=[];
+	
+	this.getHttpConfig = function () {
+		var additionalHeaders = {};
+		var csrfToken = $cookies.get('X-Bonita-API-Token');
+		if (csrfToken) {
+			additionalHeaders ['X-Bonita-API-Token'] = csrfToken;
+		}
+		var config= {"headers": additionalHeaders};
+		// console.log("GetHttpConfig : "+angular.toJson( config));
+		return config;
+	}
+	
 	
 	this.refresh = function()
 	{
@@ -47,7 +47,7 @@ appCommand.controller('CtrlControler',
 		// 7.6 : the server force a cache on all URL, so to bypass the cache, then create a different URL
 		var d = new Date();
 
-		$http.get( '?page=custompage_workers&action=refresh&t='+d.getTime() )
+		$http.get( '?page=custompage_radars&action=refresh&t='+d.getTime(),this.getHttpConfig(), this.getHttpConfig() )
 				.success( function ( jsonResult, statusHttp, headers, config ) {
 					
 					// connection is lost ?
@@ -104,7 +104,7 @@ appCommand.controller('CtrlControler',
 		// 7.6 : the server force a cache on all URL, so to bypass the cache, then create a different URL
 		var d = new Date();
 
-		$http.get( '?page=custompage_workers&action=saveprops&paramjson='+json +'&t='+d.getTime())
+		$http.get( '?page=custompage_radars&action=saveprops&paramjson='+json +'&t='+d.getTime(), this.getHttpConfig())
 				.success( function ( jsonResult, statusHttp, headers, config ) {
 					
 					// connection is lost ?
