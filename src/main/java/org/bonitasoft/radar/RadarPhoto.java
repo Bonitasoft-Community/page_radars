@@ -60,7 +60,11 @@ public class RadarPhoto {
         public IndicatorPhoto(String name) {
             this.name = name;
         }
-
+        public IndicatorPhoto(String name, String label, Object value) {
+            this.name = name;
+            this.label = label;
+            this.value = value;
+        }
         public String getName() {
             return name;
         }
@@ -257,7 +261,7 @@ public class RadarPhoto {
         map.put("listindicators", listMapIndicators);
 
         //--------------- list of detail
-        List<Map<String, Object>> listMapDetails = new ArrayList<Map<String, Object>>();
+        List<Map<String, Object>> listMapDetails = new ArrayList<>();
         for (DataHeaderPhoto headerPhoto : listHeader) {
             listMapDetails.add(headerPhoto.getMap());
         }

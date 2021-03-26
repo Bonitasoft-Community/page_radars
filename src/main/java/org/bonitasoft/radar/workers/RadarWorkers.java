@@ -33,16 +33,16 @@ import org.bonitasoft.radar.jmx.JmxCall;
 public class RadarWorkers extends Radar {
 
 
-    public final static String CLASS_RADAR_NAME = "Workers";
+    public static final String CLASS_RADAR_NAME = "Workers";
 
-    private final static BEvent eventErrorExecutionQuery = new BEvent(RadarWorkers.class.getName(), 1,
+    private static final BEvent eventErrorExecutionQuery = new BEvent(RadarWorkers.class.getName(), 1,
             Level.ERROR,
             "Error during the SqlQuery", "The SQL Query to detect a stuck flow node failed", "No stick flow nodes can be detected",
             "Check exception");
 
     
-    private final static String LOGGER_LABEL = "DeepMonitoring ##";
-    private final static Logger lOGGER = Logger.getLogger(RadarWorkers.class.getName());
+    private static final String LOGGER_LABEL = "DeepMonitoring ##";
+    private static final Logger lOGGER = Logger.getLogger(RadarWorkers.class.getName());
 
  
 

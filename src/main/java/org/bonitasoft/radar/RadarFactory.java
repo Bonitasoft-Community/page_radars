@@ -9,6 +9,7 @@ import java.util.Map;
 import org.bonitasoft.engine.api.APIAccessor;
 import org.bonitasoft.radar.archive.RadarCleanArchivedDross;
 import org.bonitasoft.radar.connector.RadarTimeTrackerConnector;
+import org.bonitasoft.radar.portal.RadarValveTomcat;
 import org.bonitasoft.radar.process.RadarCase;
 import org.bonitasoft.radar.process.RadarProcess;
 import org.bonitasoft.radar.sql.RadarSql;
@@ -42,6 +43,7 @@ public class RadarFactory {
         listClassRadars.put(RadarSql.CLASS_RADAR_NAME, RadarSql.class);
         listClassRadars.put(RadarCase.CLASS_RADAR_NAME, RadarCase.class);
         listClassRadars.put(RadarCleanArchivedDross.CLASS_RADAR_NAME, RadarCleanArchivedDross.class);
+        listClassRadars.put(RadarValveTomcat.CLASS_RADAR_NAME, RadarValveTomcat.class);
     }
 
     
@@ -84,6 +86,8 @@ public class RadarFactory {
                 radar = new RadarCase(name,tenantId, apiAccessor);
             else if (RadarProcess.CLASS_RADAR_NAME.equals(className))
                 radar = new RadarProcess(name,tenantId, apiAccessor);
+            else if (RadarValveTomcat.CLASS_RADAR_NAME.equals(className))
+                radar = new RadarValveTomcat(name,tenantId, apiAccessor);
             if (radar==null)
                 return null;
             listRadars.add(radar);

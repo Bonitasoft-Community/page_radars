@@ -22,15 +22,15 @@ public class Photo
       public int id;
       public String name;
       public Thread.State state;
-      public String workInformation="";
+      public StringBuilder workInformation= new StringBuilder();
       public String shortWorkInformation= null;
       
       public Map<String,Object> getMap()
       {
-          Map<String,Object>  map = new HashMap<String,Object>();
+          Map<String,Object>  map = new HashMap<>();
           map.put("name",  name);
           map.put("state", state.toString());
-          map.put("workinformation", workInformation);
+          map.put("workinformation", workInformation.toString());
           map.put("shortworkinformation", shortWorkInformation);
           return map;
       }
@@ -42,7 +42,7 @@ public class Photo
         for (int i=0;i<listSt.length;i++ )
         {
           StackTraceElement st = listSt[  i ];
-          workInformation+=st.getClassName()+".<i>"+st.getMethodName()+"</i><br>";
+          workInformation.append( st.getClassName()+".<i>"+st.getMethodName()+"</i><br>");
           if (i==0 || i==listSt.length-1)
             continue;
             
